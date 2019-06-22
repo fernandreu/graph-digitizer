@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Microsoft.Win32;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace GraphDigitizer.Views
 {
@@ -305,9 +307,9 @@ namespace GraphDigitizer.Views
             RECT r;
             this.Prec = false;
             r.Top = 0;
-            r.Bottom = (int)SystemParameters.PrimaryScreenHeight;
+            r.Bottom = int.MaxValue;
             r.Left = 0;
-            r.Right = (int)SystemParameters.PrimaryScreenWidth;
+            r.Right = int.MaxValue;
             ClipCursor(ref r);
             if (recover) SetCursorPos((int)this.PrevPos.X, (int)this.PrevPos.Y);
         }
@@ -638,33 +640,35 @@ namespace GraphDigitizer.Views
 
         private void OnWindowPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (this.Selecting)
+            if (!this.Selecting)
             {
-                if (double.IsNaN(this.SelRect.Width) || this.SelRect.Width < 1.0 || double.IsNaN(this.SelRect.Height) || this.SelRect.Height < 1.0)
+                return;
+            }
+
+            if (double.IsNaN(this.SelRect.Width) || this.SelRect.Width < 1.0 || double.IsNaN(this.SelRect.Height) || this.SelRect.Height < 1.0)
+            {
+                //Nothing at the moment
+            }
+            else
+            {
+                double left = Canvas.GetLeft(this.SelRect), top = Canvas.GetTop(this.SelRect), x, y;
+                Label tb;
+                if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
+                    this.dgrPoints.SelectedItems.Clear();
+                for (int i = 1; i < this.cnvGraph.Children.Count; i++) //Index = 1 is always the imgGraph element
                 {
-                    //Nothing at the moment
-                }
-                else
-                {
-                    double left = Canvas.GetLeft(this.SelRect), top = Canvas.GetTop(this.SelRect), x, y;
-                    Label tb;
-                    if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
-                        this.dgrPoints.SelectedItems.Clear();
-                    for (int i = 1; i < this.cnvGraph.Children.Count; i++) //Index = 1 is always the imgGraph element
+                    if (this.cnvGraph.Children[i] is Label)
                     {
-                        if (this.cnvGraph.Children[i] is Label)
-                        {
-                            tb = (Label)this.cnvGraph.Children[i];
-                            x = Canvas.GetLeft(tb) + 8;
-                            y = Canvas.GetTop(tb) + 8;
-                            if (x >= left && x <= left + this.SelRect.Width && y >= top && y <= top + this.SelRect.Height) //Point is within the rectangle
-                                this.dgrPoints.SelectedItems.Add((DataPoint)tb.Tag);
-                        }
+                        tb = (Label)this.cnvGraph.Children[i];
+                        x = Canvas.GetLeft(tb) + 8;
+                        y = Canvas.GetTop(tb) + 8;
+                        if (x >= left && x <= left + this.SelRect.Width && y >= top && y <= top + this.SelRect.Height) //Point is within the rectangle
+                            this.dgrPoints.SelectedItems.Add((DataPoint)tb.Tag);
                     }
                 }
-                this.cnvGraph.Children.Remove(this.SelRect);
-                this.Selecting = false;
             }
+            this.cnvGraph.Children.Remove(this.SelRect);
+            this.Selecting = false;
         }
 
         private void btnHelp_Click(object sender, RoutedEventArgs e)
