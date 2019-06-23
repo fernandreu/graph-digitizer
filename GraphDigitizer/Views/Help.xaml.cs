@@ -12,26 +12,28 @@ namespace GraphDigitizer.Views
         public Help()
         {
             this.InitializeComponent();
-            var tr = new TextRange(this.ContentEdit.Document.ContentStart, this.ContentEdit.Document.ContentEnd);
-            tr.Load(new System.IO.MemoryStream(Encoding.Default.GetBytes(Properties.Resources.HelpGeneral)), DataFormats.Rtf);
+            this.LoadPage(Properties.Resources.HelpGeneral);
         }
 
         private void OnGeneralTabGotFocus(object sender, RoutedEventArgs e)
         {
-            var tr = new TextRange(this.ContentEdit.Document.ContentStart, this.ContentEdit.Document.ContentEnd);
-            tr.Load(new System.IO.MemoryStream(Encoding.Default.GetBytes(Properties.Resources.HelpGeneral)), DataFormats.Rtf);
+            this.LoadPage(Properties.Resources.HelpGeneral);
         }
 
         private void OnKeysTabGotFocus(object sender, RoutedEventArgs e)
         {
-            var tr = new TextRange(this.ContentEdit.Document.ContentStart, this.ContentEdit.Document.ContentEnd);
-            tr.Load(new System.IO.MemoryStream(Encoding.Default.GetBytes(Properties.Resources.HelpKeys)), DataFormats.Rtf);
+            this.LoadPage(Properties.Resources.HelpKeys);
         }
 
         private void OnAboutTabGotFocus(object sender, RoutedEventArgs e)
         {
+            this.LoadPage(Properties.Resources.HelpAbout);
+        }
+
+        private void LoadPage(string rtf)
+        {
             var tr = new TextRange(this.ContentEdit.Document.ContentStart, this.ContentEdit.Document.ContentEnd);
-            tr.Load(new System.IO.MemoryStream(Encoding.Default.GetBytes(Properties.Resources.HelpAbout)), DataFormats.Rtf);
+            tr.Load(new System.IO.MemoryStream(Encoding.Default.GetBytes(rtf)), DataFormats.Rtf);
         }
     }
 }

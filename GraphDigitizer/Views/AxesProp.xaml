@@ -13,6 +13,7 @@
         Width="260" 
         WindowStyle="ToolWindow"
         Topmost="True"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Background="#FFE8EBEB">
     <Grid>
         <Grid.ColumnDefinitions>

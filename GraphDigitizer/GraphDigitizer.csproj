@@ -97,6 +97,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Models\Axes.cs" />
+    <Compile Include="Models\DataPoint.cs" />
     <Compile Include="Views\AxesProp.xaml.cs">
       <DependentUpon>AxesProp.xaml</DependentUpon>
     </Compile>

@@ -54,13 +54,13 @@
         <Canvas Grid.Row="2" x:Name="cnvZoom" ClipToBounds="True" MouseMove="cnvZoom_MouseMove" Cursor="Cross">
             <Image Canvas.Left="20" Canvas.Top="25" Height="151" x:Name="imgZoom" Stretch="Fill" Width="155" MouseDown="imgZoom_MouseDown" />
         </Canvas>
-        <Button Height="26" HorizontalAlignment="Left" x:Name="btnOpen" VerticalAlignment="Top" Width="30" Click="btnOpen_Click" ToolTip="Load a new image" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" x:Name="btnOpen" VerticalAlignment="Top" Width="30" Click="OnOpenClicked" ToolTip="Load a new image" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/LoadPicture.png"/>
         </Button>
         <Button Height="26" HorizontalAlignment="Left" Margin="31,0,0,0" x:Name="btnFromClipboard" VerticalAlignment="Top" Width="30" Click="btnFromClipboard_Click" ToolTip="Load an image from the clipboard" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Clipboard.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="62,0,0,0" x:Name="btnSave" VerticalAlignment="Top" Width="30" Click="btnSave_Click" ToolTip="Save the current data in a file" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="62,0,0,0" x:Name="btnSave" VerticalAlignment="Top" Width="30" Click="OnSaveClicked" ToolTip="Save the current data in a file" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Save.png"/>
         </Button>
         <Button Height="26" HorizontalAlignment="Left" Margin="93,0,0,0" x:Name="btnAxes" VerticalAlignment="Top" Width="30" ToolTip="Set the image axes" Click="btnAxes_Click" Style="{StaticResource ToolBarButtonStyle}">
@@ -69,34 +69,34 @@
         <Button Height="26" HorizontalAlignment="Left" Margin="124,0,0,0" x:Name="btnAxesProp" VerticalAlignment="Top" Width="30" ToolTip="Set the properties of the axes" Click="btnAxesProp_Click" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Properties.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="155,0,0,0" x:Name="btnSelect" VerticalAlignment="Top" Width="30" ToolTip="Selection tool (Hotkey: 1)" Click="btnSelect_Click" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="155,0,0,0" x:Name="btnSelect" VerticalAlignment="Top" Width="30" ToolTip="Selection tool (Hotkey: 1)" Click="OnSelectClicked" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Select.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="186,0,0,0" x:Name="btnPoints" VerticalAlignment="Top" Width="30" ToolTip="Pick point tool (Hotkey: 2)" Click="btnPoints_Click" Style="{StaticResource ToolBarButtonStyle}" Grid.ColumnSpan="2">
+        <Button Height="26" HorizontalAlignment="Left" Margin="186,0,0,0" x:Name="btnPoints" VerticalAlignment="Top" Width="30" ToolTip="Pick point tool (Hotkey: 2)" Click="OnPointsClicked" Style="{StaticResource ToolBarButtonStyle}" Grid.ColumnSpan="2">
             <Image Source="../Resources/Crosshair.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="49,0,0,0" x:Name="btnDelPoints" VerticalAlignment="Top" Width="30" Click="btnDelPoints_Click" ToolTip="Delete all the selected points" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="49,0,0,0" x:Name="btnDelPoints" VerticalAlignment="Top" Width="30" Click="OnDeletePointsClicked" ToolTip="Delete all the selected points" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="../Resources/Delete.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="80,0,0,0" x:Name="btnZoomIn" VerticalAlignment="Top" Width="30" Click="btnZoomIn_Click" ToolTip="Increase the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="80,0,0,0" x:Name="btnZoomIn" VerticalAlignment="Top" Width="30" Click="OnZoomInClicked" ToolTip="Increase the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="../Resources/ZoomIn.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="111,0,0,0" x:Name="btnZoomOut" VerticalAlignment="Top" Width="30" Click="btnZoomOut_Click" ToolTip="Decrease the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="111,0,0,0" x:Name="btnZoomOut" VerticalAlignment="Top" Width="30" Click="OnZoomOutClicked" ToolTip="Decrease the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="../Resources/ZoomOut.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="142,0,0,0" x:Name="btnEnlarge" VerticalAlignment="Top" Width="30" Click="btnEnlarge_Click" ToolTip="Enlarge the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="142,0,0,0" x:Name="btnEnlarge" VerticalAlignment="Top" Width="30" Click="OnEnlargeClicked" ToolTip="Enlarge the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Enlarge.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="173,0,0,0" x:Name="btnReduce" VerticalAlignment="Top" Width="30" Click="btnReduce_Click" ToolTip="Reduce the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="173,0,0,0" x:Name="btnReduce" VerticalAlignment="Top" Width="30" Click="OnReduceClicked" ToolTip="Reduce the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Reduce.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="204,0,0,0" x:Name="btnRestore" VerticalAlignment="Top" Width="30" Click="btnRestore_Click" ToolTip="Restore the main image size" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="204,0,0,0" x:Name="btnRestore" VerticalAlignment="Top" Width="30" Click="OnRestoreClicked" ToolTip="Restore the main image size" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/OriginalSize.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="235,0,0,0" x:Name="btnHelp" VerticalAlignment="Top" Width="30" Click="btnHelp_Click" Grid.Column="1" ToolTip="Show the help window (Hotkey: H)" Padding="0" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="235,0,0,0" x:Name="btnHelp" VerticalAlignment="Top" Width="30" Click="OnHelpClicked" Grid.Column="1" ToolTip="Show the help window (Hotkey: H)" Padding="0" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="../Resources/Help.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" x:Name="btnCopy" VerticalAlignment="Top" Width="30" Click="btnCopy_Click" ToolTip="Copy all the points to clipboard" Style="{StaticResource ToolBarButtonStyle}" Margin="17,0,0,0" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" x:Name="btnCopy" VerticalAlignment="Top" Width="30" Click="OnCopyClicked" ToolTip="Copy all the points to clipboard" Style="{StaticResource ToolBarButtonStyle}" Margin="17,0,0,0" Grid.Column="1">
             <Image Source="../Resources/Copy.png"/>
         </Button>
         <Border x:Name="brdDgrFix" Margin="188,0,0,0" Grid.Row="1" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="12" Background="{StaticResource dgrHeaderBackground}"/>

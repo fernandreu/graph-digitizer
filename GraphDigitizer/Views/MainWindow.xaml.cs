@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using GraphDigitizer.Models;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
@@ -19,40 +20,48 @@ namespace GraphDigitizer.Views
     {
         [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetCursorPos")]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        public static extern bool SetCursorPos(int X, int Y);
+        private static extern bool SetCursorPos(int x, int y);
 
         [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetCursorPos")]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        public static extern bool GetCursorPos(out POINT p);
+        private static extern bool GetCursorPos(out Point p);
 
         [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "ClipCursor")]
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        public static extern bool ClipCursor(ref RECT r);
+        private static extern bool ClipCursor(ref Rect r);
 
-        bool Prec = false; //Precision mode
-        Point PrevPos; //Previous position
-        State state = State.Idle;
-        Axes axes;
-        List<DataPoint> data;
+        private bool precisionMode = false;
+        private System.Windows.Point previousPosition;
+        private State state = State.Idle;
+        private Axes axes = new Axes();
+        private readonly List<DataPoint> data = new List<DataPoint>();
 
         //Zoom properties, prop in percentage
-        int zoom = 2, prop = 100; 
+        private int zoom = 2, prop = 100; 
         
         //Selection rectangle
-        bool Selecting = false; //Selection rectangle off
-        Point SelFirstPos; //First rectangle corner
-        Rectangle SelRect; //SelectionRectangle
+        private bool selecting = false; //Selection rectangle off
+        private System.Windows.Point selFirstPos; //First rectangle corner
+        private Rectangle selRect; //SelectionRectangle
 
         //Help window
-        Help HelpWindow;
+        private Help helpWindow;
 
-        OpenFileDialog ofd;
-        SaveFileDialog sfd;
+        private readonly OpenFileDialog ofd = new OpenFileDialog
+        {
+            FileName = "", 
+            Filter = "Image files|*.bmp;*.gif;*.tiff;*.jpg;*.jpeg;*.png|Graph Digitizer files|*.gdf",
+        };
+
+        private readonly SaveFileDialog sfd = new SaveFileDialog
+        {
+            FileName = "", 
+            Filter = "Text files|*.txt|CSV files|*.csv|Graph Digitizer Files|*.gdf",
+        };
 
         public MainWindow()
         {
             this.InitializeComponent();
-            this.data = new List<DataPoint>();
             this.dgrPoints.ItemsSource = this.data;
             this.axes.Xmin.Value = 0.0;
             this.axes.Xmax.Value = 1.0;
@@ -60,21 +69,16 @@ namespace GraphDigitizer.Views
             this.axes.Ymax.Value = 1.0;
             this.zoom = Properties.Settings.Default.Zoom;
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
+            {
                 this.OpenFile(Properties.Settings.Default.LastFile);
+            }
+
             this.UpdateProportions((double)Properties.Settings.Default.Proportion);
-
-            this.ofd = new OpenFileDialog();
-            this.ofd.FileName = "";
-            this.ofd.Filter = "Image files|*.bmp;*.gif;*.tiff;*.jpg;*.jpeg;*.png|Graph Digitizer files|*.gdf";
-
-            this.sfd = new SaveFileDialog();
-            this.sfd.FileName = "";
-            this.sfd.Filter = "Text files|*.txt|CSV files|*.csv|Graph Digitizer Files|*.gdf";
         }
 
         private void OpenFile(string path)
         {
-            BitmapImage bmp = new BitmapImage(new Uri(path));
+            var bmp = new BitmapImage(new Uri(path));
 
             //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
             this.prop = 100;
@@ -94,9 +98,14 @@ namespace GraphDigitizer.Views
 
             this.DeletePoints();
             if (this.axes.Xaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Xaxis);
+            }
+
             if (this.axes.Yaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Yaxis);
+            }
 
             this.axes.Xmin.X = this.axes.Xmin.Y = this.axes.Xmax.X = this.axes.Xmax.Y = this.axes.Ymin.X = this.axes.Ymin.Y = this.axes.Ymax.X = this.axes.Ymax.Y = double.NaN;
 
@@ -104,9 +113,13 @@ namespace GraphDigitizer.Views
             this.cnvGraph.Cursor = Cursors.Cross;
         }
 
-        private void btnOpen_Click(object sender, RoutedEventArgs e)
+        private void OnOpenClicked(object sender, RoutedEventArgs e)
         {
-            if (!this.ofd.ShowDialog().Value) return;
+            if (!this.ofd.ShowDialog().Value)
+            {
+                return;
+            }
+
             if (this.ofd.FilterIndex == 1)
             {
                 this.OpenFile(this.ofd.FileName);
@@ -115,11 +128,11 @@ namespace GraphDigitizer.Views
             }
             else if (this.ofd.FilterIndex == 2)
             {
-                System.IO.BinaryReader br = new System.IO.BinaryReader(this.ofd.OpenFile());
-                System.Globalization.CultureInfo ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
+                var br = new System.IO.BinaryReader(this.ofd.OpenFile());
+                var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
                 System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
 
-                BitmapImage bmp = this.ImageFromBuffer(br.ReadBytes(br.ReadInt32()));
+                var bmp = this.ImageFromBuffer(br.ReadBytes(br.ReadInt32()));
 
                 this.prop = br.ReadInt32();
                 this.zoom = br.ReadInt32();
@@ -145,10 +158,13 @@ namespace GraphDigitizer.Views
                 this.CreateYaxis();
 
                 this.DeletePoints();
-                int total = br.ReadInt32();
+                var total = br.ReadInt32();
                 this.data.Capacity = total;
-                for (int i = 0; i < total; i++)
+                for (var i = 0; i < total; i++)
+                {
                     this.data.Add(new DataPoint(br.ReadDouble(), br.ReadDouble(), br.ReadDouble(), br.ReadDouble(), this.cnvGraph, this.prop, i + 1));
+                }
+
                 this.dgrPoints.Items.Refresh();
 
                 this.state = State.Points;
@@ -189,29 +205,32 @@ namespace GraphDigitizer.Views
                 case State.Select:
                     this.txtToolTip.Text = "Click on any point to select it";
                     break;
+                default:
+                    this.txtToolTip.Text = string.Empty;
+                    break;
             }
         }
 
         private void imgGraph_MouseMove(object sender, MouseEventArgs e)
         {
 
-            Point p = e.GetPosition(this.imgGraph);
-            if (this.Selecting) //Update selection rectangle position
+            System.Windows.Point p = e.GetPosition(this.imgGraph);
+            if (this.selecting) //Update selection rectangle position
             {
-                if (p.X > this.SelFirstPos.X)
-                    this.SelRect.Width = p.X - this.SelFirstPos.X;
+                if (p.X > this.selFirstPos.X)
+                    this.selRect.Width = p.X - this.selFirstPos.X;
                 else
                 {
-                    Canvas.SetLeft(this.SelRect, p.X);
-                    this.SelRect.Width = this.SelFirstPos.X - p.X;
+                    Canvas.SetLeft(this.selRect, p.X);
+                    this.selRect.Width = this.selFirstPos.X - p.X;
                 }
 
-                if (p.Y > this.SelFirstPos.Y)
-                    this.SelRect.Height = p.Y - this.SelFirstPos.Y;
+                if (p.Y > this.selFirstPos.Y)
+                    this.selRect.Height = p.Y - this.selFirstPos.Y;
                 else
                 {
-                    Canvas.SetTop(this.SelRect, p.Y);
-                    this.SelRect.Height = this.SelFirstPos.Y - p.Y;
+                    Canvas.SetTop(this.selRect, p.Y);
+                    this.selRect.Height = this.selFirstPos.Y - p.Y;
                 }
             }
             p.X *= 100.0 / this.prop;
@@ -237,8 +256,7 @@ namespace GraphDigitizer.Views
 
         private void UpdateStatusCoords(double X, double Y)
         {
-            double xreal, yreal;
-            this.GetRealCoords(X, Y, out xreal, out yreal);
+            this.GetRealCoords(X, Y, out var xreal, out var yreal);
             this.txtScreenX.Text = (X * 100 / this.prop).ToString("F2");
             this.txtScreenY.Text = (Y * 100 / this.prop).ToString("F2");
             this.txtRealX.Text = FormatNum(xreal);
@@ -248,32 +266,34 @@ namespace GraphDigitizer.Views
         public static string FormatNum(double num)
         {
             if (double.IsNaN(num)) return "N/A";
-            if (num == 0.0) return "0";
+            if (Math.Abs(num) < 1e-10) return "0";
 
-            double aux = Math.Abs(num); int dig;
+            var aux = Math.Abs(num);
             if (aux > 999999.0 || aux < 0.00001)
+            {
                 return num.ToString("E4");
-            dig = (int)(Math.Log10(aux)+Math.Sign(Math.Log10(aux)));
-            if (dig >= 0)
-                return num.ToString(string.Format("F{0}", 8 - dig));
-            else
-                return num.ToString("F8");
+            }
+
+            var dig = (int)(Math.Log10(aux) + Math.Sign(Math.Log10(aux)));
+            return num.ToString(dig >= 0 ? $"F{8 - dig}" : "F8");
         }
 
         private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
         {
-            Point p = e.GetPosition(this.imgZoom);
+            var p = e.GetPosition(this.imgZoom);
             this.UpdateStatusCoords(p.X / this.zoom, p.Y / this.zoom);
         }
 
         private void ZoomModeIn()
         {
-            Point p; POINT prev; RECT r;
-            this.Prec = true;
+            System.Windows.Point p;
+            Point prev; 
+            Rect r;
+            this.precisionMode = true;
             GetCursorPos(out prev);
-            this.PrevPos.X = (double)prev.X;
-            this.PrevPos.Y = (double)prev.Y;
-            p = this.PointToScreen(this.cnvZoom.TransformToAncestor(this).Transform(new Point(0, 0)));
+            this.previousPosition.X = (double)prev.X;
+            this.previousPosition.Y = (double)prev.Y;
+            p = this.PointToScreen(this.cnvZoom.TransformToAncestor(this).Transform(new System.Windows.Point(0, 0)));
             SetCursorPos((int)p.X + 100, (int)p.Y + 100);
             r.Top = (int)p.Y;
             r.Bottom = (int)p.Y + 200;
@@ -285,38 +305,50 @@ namespace GraphDigitizer.Views
         private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
         {
             if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && this.cnvGraph.IsMouseOver)
+            {
                 this.ZoomModeIn();
-            if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl) || Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt) || Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
                 return;
+            }
+
+            if (Keyboard.IsKeyDown(Key.LeftCtrl) || 
+                Keyboard.IsKeyDown(Key.RightCtrl) || 
+                Keyboard.IsKeyDown(Key.LeftAlt) ||
+                Keyboard.IsKeyDown(Key.RightAlt) || 
+                Keyboard.IsKeyDown(Key.LeftShift) || 
+                Keyboard.IsKeyDown(Key.RightShift))
+            {
+                return;
+            }
+
             switch (e.Key)
             {
                 case Key.F1:
-                    this.btnHelp_Click(sender, e);
+                    this.OnHelpClicked(sender, e);
                     break;
                 case Key.D1:
-                    this.btnSelect_Click(sender, e);
+                    this.OnSelectClicked(sender, e);
                     break;
                 case Key.D2:
-                    this.btnPoints_Click(sender, e);
+                    this.OnPointsClicked(sender, e);
                     break;
             }
         }
 
         private void ZoomModeOut(bool recover = true)
         {
-            RECT r;
-            this.Prec = false;
+            Rect r;
+            this.precisionMode = false;
             r.Top = 0;
             r.Bottom = int.MaxValue;
             r.Left = 0;
             r.Right = int.MaxValue;
             ClipCursor(ref r);
-            if (recover) SetCursorPos((int)this.PrevPos.X, (int)this.PrevPos.Y);
+            if (recover) SetCursorPos((int)this.previousPosition.X, (int)this.previousPosition.Y);
         }
 
         private void OnWindowPreviewKeyUp(object sender, KeyEventArgs e)
         {
-            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && this.Prec)
+            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && this.precisionMode)
                 this.ZoomModeOut();
         }
 
@@ -338,11 +370,10 @@ namespace GraphDigitizer.Views
                 RealY = this.axes.Ymin.Value + (Yaxis - this.axes.Ymin.Y) / (this.axes.Ymax.Y - this.axes.Ymin.Y) * (this.axes.Ymax.Value - this.axes.Ymin.Value);
         }
 
-        private void AddPoint(double X, double Y)
+        private void AddPoint(double x, double y)
         {
-            double Xpoint, Ypoint;
-            this.GetRealCoords(X, Y, out Xpoint, out Ypoint);
-            this.data.Add(new DataPoint(Xpoint, Ypoint, X, Y, this.cnvGraph, this.prop, this.data.Count + 1));
+            this.GetRealCoords(x, y, out var Xpoint, out var Ypoint);
+            this.data.Add(new DataPoint(Xpoint, Ypoint, x, y, this.cnvGraph, this.prop, this.data.Count + 1));
             this.data[this.data.Count - 1].Obj.MouseDown += new MouseButtonEventHandler(this.PointMouseDown);
             this.dgrPoints.Items.Refresh();
         }
@@ -350,36 +381,49 @@ namespace GraphDigitizer.Views
         private void CreateXaxis()
         {
             if (this.axes.Xaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Xaxis);
-            this.axes.Xaxis = new Line();
-            this.axes.Xaxis.X1 = this.axes.Xmin.X * this.prop / 100;
-            this.axes.Xaxis.Y1 = this.axes.Xmin.Y * this.prop / 100;
-            this.axes.Xaxis.X2 = this.axes.Xmax.X * this.prop / 100;
-            this.axes.Xaxis.Y2 = this.axes.Xmax.Y * this.prop / 100;
-            this.axes.Xaxis.Stroke = Brushes.Red;
-            this.axes.Xaxis.StrokeThickness = 2;
-            this.axes.Xaxis.StrokeDashArray = new DoubleCollection();
-            this.axes.Xaxis.StrokeDashArray.Add(5.0);
-            this.axes.Xaxis.StrokeDashArray.Add(5.0);
-            this.axes.Xaxis.StrokeEndLineCap = PenLineCap.Triangle;
+            }
+
+            this.axes.Xaxis = new Line
+            {
+                X1 = this.axes.Xmin.X * this.prop / 100,
+                Y1 = this.axes.Xmin.Y * this.prop / 100,
+                X2 = this.axes.Xmax.X * this.prop / 100,
+                Y2 = this.axes.Xmax.Y * this.prop / 100,
+                Stroke = Brushes.Red,
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection
+                {
+                    5.0, 5.0
+                },
+                StrokeEndLineCap = PenLineCap.Triangle
+            };
+
             this.cnvGraph.Children.Add(this.axes.Xaxis);
         }
 
         private void CreateYaxis()
         {
             if (this.axes.Yaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Yaxis);
-            this.axes.Yaxis = new Line();
-            this.axes.Yaxis.X1 = this.axes.Ymin.X * this.prop / 100;
-            this.axes.Yaxis.Y1 = this.axes.Ymin.Y * this.prop / 100;
-            this.axes.Yaxis.X2 = this.axes.Ymax.X * this.prop / 100;
-            this.axes.Yaxis.Y2 = this.axes.Ymax.Y * this.prop / 100;
-            this.axes.Yaxis.Stroke = Brushes.Blue;
-            this.axes.Yaxis.StrokeThickness = 2;
-            this.axes.Yaxis.StrokeDashArray = new DoubleCollection();
-            this.axes.Yaxis.StrokeDashArray.Add(5.0);
-            this.axes.Yaxis.StrokeDashArray.Add(5.0);
-            this.axes.Yaxis.StrokeEndLineCap = PenLineCap.Round;
+            }
+
+            this.axes.Yaxis = new Line
+            {
+                X1 = this.axes.Ymin.X * this.prop / 100,
+                Y1 = this.axes.Ymin.Y * this.prop / 100,
+                X2 = this.axes.Ymax.X * this.prop / 100,
+                Y2 = this.axes.Ymax.Y * this.prop / 100,
+                Stroke = Brushes.Blue,
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection
+                {
+                    5.0, 5.0
+                },
+                StrokeEndLineCap = PenLineCap.Round
+            };
             this.cnvGraph.Children.Add(this.axes.Yaxis);
         }
 
@@ -427,8 +471,11 @@ namespace GraphDigitizer.Views
 
         private void UpdateData()
         {
-            for (int i = 0; i < this.data.Count; i++)
+            for (var i = 0; i < this.data.Count; i++)
+            {
                 this.data[i].Obj.Content = (i + 1) % 100;
+            }
+
             this.dgrPoints.Items.Refresh();
         }
 
@@ -472,21 +519,22 @@ namespace GraphDigitizer.Views
                 this.cnvGraph.Children.Remove(dp.Obj);
                 this.data.Remove(dp);
             }
+
             this.UpdateData();
         }
 
         private void imgGraph_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Point p = e.GetPosition(this.imgGraph);
+            System.Windows.Point p = e.GetPosition(this.imgGraph);
             if (this.state == State.Select)
             {
                 if (e.ChangedButton != MouseButton.Left) return;
-                this.Selecting = true;
-                this.SelFirstPos = p;
-                this.SelRect = new Rectangle() { Stroke = new SolidColorBrush(new Color() { ScA = 0.7f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), Fill = new SolidColorBrush(new Color() { ScA = 0.2f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), StrokeThickness = 1.0 };
-                this.cnvGraph.Children.Add(this.SelRect);
-                Canvas.SetLeft(this.SelRect, this.SelFirstPos.X);
-                Canvas.SetTop(this.SelRect, this.SelFirstPos.Y);
+                this.selecting = true;
+                this.selFirstPos = p;
+                this.selRect = new Rectangle() { Stroke = new SolidColorBrush(new Color() { ScA = 0.7f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), Fill = new SolidColorBrush(new Color() { ScA = 0.2f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), StrokeThickness = 1.0 };
+                this.cnvGraph.Children.Add(this.selRect);
+                Canvas.SetLeft(this.selRect, this.selFirstPos.X);
+                Canvas.SetTop(this.selRect, this.selFirstPos.Y);
             }
             else
                 this.SelectPoint(p.X / this.prop * 100, p.Y / this.prop * 100);
@@ -494,7 +542,7 @@ namespace GraphDigitizer.Views
 
         private void imgZoom_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            Point p = e.GetPosition(this.imgZoom);
+            System.Windows.Point p = e.GetPosition(this.imgZoom);
             this.SelectPoint(p.X / this.zoom, p.Y / this.zoom);
         }
 
@@ -512,9 +560,9 @@ namespace GraphDigitizer.Views
 
         private void SelectAxesProp()
         {
-            if (this.Prec) this.ZoomModeOut(false);
-            AxesProp ap = new AxesProp(this.axes);
-            POINT p;
+            if (this.precisionMode) this.ZoomModeOut(false);
+            var ap = new AxesProp(this.axes);
+            Point p;
             GetCursorPos(out p);
             //The program will try to position the window leaving the mouse in a corner
             if (p.X + ap.Width > SystemParameters.PrimaryScreenWidth)
@@ -528,32 +576,34 @@ namespace GraphDigitizer.Views
                 ap.Top = p.Y;
 
             ap.ShowDialog();
-            this.axes = ap.axes;
+            this.axes = ap.Axes;
             this.state = State.Points;
         }
 
         private void DeletePoints()
         {
-            foreach (DataPoint dp in this.data)
+            foreach (var dp in this.data)
+            {
                 this.cnvGraph.Children.Remove(dp.Obj);
+            }
             
             this.data.Clear();
             this.dgrPoints.Items.Refresh();
         }
 
-        private void btnDelPoints_Click(object sender, RoutedEventArgs e)
+        private void OnDeletePointsClicked(object sender, RoutedEventArgs e)
         {
             this.DeletePoints();
         }
 
-        private void btnZoomIn_Click(object sender, RoutedEventArgs e)
+        private void OnZoomInClicked(object sender, RoutedEventArgs e)
         {
             if (this.zoom < 16) this.zoom *= 2;
             this.imgZoom.Width = ((BitmapSource)this.imgZoom.Source).PixelWidth * this.zoom;
             this.imgZoom.Height = ((BitmapSource)this.imgZoom.Source).PixelHeight * this.zoom;
         }
 
-        private void btnZoomOut_Click(object sender, RoutedEventArgs e)
+        private void OnZoomOutClicked(object sender, RoutedEventArgs e)
         {
             if (this.zoom > 1) this.zoom /= 2;
             this.imgZoom.Width = ((BitmapSource)this.imgZoom.Source).PixelWidth * this.zoom;
@@ -568,7 +618,7 @@ namespace GraphDigitizer.Views
             this.imgGraph.Height = this.cnvGraph.Height;
 
             Line line; Label tb; //tb because originally it was a TextBlock
-            for (int i = 1; i < this.cnvGraph.Children.Count; i++) //0 Index always for the imgGraph element
+            for (var i = 1; i < this.cnvGraph.Children.Count; i++) //0 Index always for the imgGraph element
             {
                 if (this.cnvGraph.Children[i] is Line)
                 {
@@ -589,7 +639,7 @@ namespace GraphDigitizer.Views
             this.prop = (int)newprop;
         }
 
-        private void btnEnlarge_Click(object sender, RoutedEventArgs e)
+        private void OnEnlargeClicked(object sender, RoutedEventArgs e)
         {
             if (this.prop >= 16000) return;
             double newprop = Math.Floor(this.prop * 1.2);
@@ -597,7 +647,7 @@ namespace GraphDigitizer.Views
             this.UpdateProportions(newprop);
         }
 
-        private void btnReduce_Click(object sender, RoutedEventArgs e)
+        private void OnReduceClicked(object sender, RoutedEventArgs e)
         {
             if (this.prop <= 5) return;
             double newprop = Math.Floor(this.prop / 1.2);
@@ -606,7 +656,7 @@ namespace GraphDigitizer.Views
             this.prop = (int)newprop;
         }
 
-        private void btnRestore_Click(object sender, RoutedEventArgs e)
+        private void OnRestoreClicked(object sender, RoutedEventArgs e)
         {
             this.UpdateProportions(100.0);
             this.prop = 100;
@@ -619,14 +669,15 @@ namespace GraphDigitizer.Views
             Properties.Settings.Default.Save();
         }
 
-        private void btnCopy_Click(object sender, RoutedEventArgs e)
+        private void OnCopyClicked(object sender, RoutedEventArgs e)
         {
-            string res = "";
-            for (int i = 0; i < this.data.Count; i++)
+            var res = string.Empty;
+            for (var i = 0; i < this.data.Count; i++)
             {
                 res += this.data[i].X + "\t" + this.data[i].Y;
                 if (i != this.data.Count) res += Environment.NewLine;
             }
+
             Clipboard.SetText(res);
         }
 
@@ -640,18 +691,18 @@ namespace GraphDigitizer.Views
 
         private void OnWindowPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (!this.Selecting)
+            if (!this.selecting)
             {
                 return;
             }
 
-            if (double.IsNaN(this.SelRect.Width) || this.SelRect.Width < 1.0 || double.IsNaN(this.SelRect.Height) || this.SelRect.Height < 1.0)
+            if (double.IsNaN(this.selRect.Width) || this.selRect.Width < 1.0 || double.IsNaN(this.selRect.Height) || this.selRect.Height < 1.0)
             {
                 //Nothing at the moment
             }
             else
             {
-                double left = Canvas.GetLeft(this.SelRect), top = Canvas.GetTop(this.SelRect), x, y;
+                double left = Canvas.GetLeft(this.selRect), top = Canvas.GetTop(this.selRect), x, y;
                 Label tb;
                 if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
                     this.dgrPoints.SelectedItems.Clear();
@@ -662,109 +713,134 @@ namespace GraphDigitizer.Views
                         tb = (Label)this.cnvGraph.Children[i];
                         x = Canvas.GetLeft(tb) + 8;
                         y = Canvas.GetTop(tb) + 8;
-                        if (x >= left && x <= left + this.SelRect.Width && y >= top && y <= top + this.SelRect.Height) //Point is within the rectangle
+                        if (x >= left && x <= left + this.selRect.Width && y >= top && y <= top + this.selRect.Height) //Point is within the rectangle
                             this.dgrPoints.SelectedItems.Add((DataPoint)tb.Tag);
                     }
                 }
             }
-            this.cnvGraph.Children.Remove(this.SelRect);
-            this.Selecting = false;
+            this.cnvGraph.Children.Remove(this.selRect);
+            this.selecting = false;
         }
 
-        private void btnHelp_Click(object sender, RoutedEventArgs e)
+        private void OnHelpClicked(object sender, RoutedEventArgs e)
         {
-            if (this.HelpWindow == null || !this.HelpWindow.IsLoaded)
+            if (this.helpWindow == null || !this.helpWindow.IsLoaded)
             {
-                this.HelpWindow = new Help();
-                this.HelpWindow.Show();
+                this.helpWindow = new Help();
+                this.helpWindow.Show();
             }
             else
             {
-                this.HelpWindow.Focus();
-                if (this.HelpWindow.WindowState == WindowState.Minimized)
-                    this.HelpWindow.WindowState = WindowState.Normal;
+                this.helpWindow.Focus();
+                if (this.helpWindow.WindowState == WindowState.Minimized)
+                    this.helpWindow.WindowState = WindowState.Normal;
             }
         }
 
-        private void btnSelect_Click(object sender, RoutedEventArgs e)
+        private void OnSelectClicked(object sender, RoutedEventArgs e)
         {
             this.state = State.Select;
             this.SetToolTip();
             this.cnvGraph.Cursor = Cursors.Arrow;
         }
 
-        private void btnPoints_Click(object sender, RoutedEventArgs e)
+        private void OnPointsClicked(object sender, RoutedEventArgs e)
         {
             this.state = State.Points;
             this.SetToolTip();
             this.cnvGraph.Cursor = Cursors.Cross;
         }
 
-        private void btnSave_Click(object sender, RoutedEventArgs e)
+        private void OnSaveClicked(object sender, RoutedEventArgs e)
         {
-            if (!this.sfd.ShowDialog().Value) return;
-            System.IO.StreamWriter sw;
-            System.IO.BinaryWriter bw;
+            if (!this.sfd.ShowDialog().Value)
+            {
+                return;
+            }
+
             switch (this.sfd.FilterIndex)
             {
                 case 1:
-                    sw = new System.IO.StreamWriter(this.sfd.OpenFile());
-                    sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
-                    sw.WriteLine(new string('-', 45));
-                    for (int i = 0; i < this.data.Count; i++)
-                        sw.WriteLine("{0,-22}{1,-22}", this.data[i].X, this.data[i].Y);
-                    sw.Close();
+                    using (var sw = new System.IO.StreamWriter(this.sfd.OpenFile()))
+                    {
+                        sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
+                        sw.WriteLine(new string('-', 45));
+                        foreach (var p in this.data)
+                        {
+                            sw.WriteLine("{0,-22}{1,-22}", p.X, p.Y);
+                        }
+
+                        sw.Close();
+                    }
                     break;
                 case 2:
-                    sw = new System.IO.StreamWriter(this.sfd.OpenFile());
-                    string sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
-                    sw.WriteLine("X Value" + sep + "Y Value");
-                    for (int i = 0; i < this.data.Count; i++)
-                        sw.WriteLine(this.data[i].X.ToString() + sep + this.data[i].Y.ToString());
-                    sw.Close();
+                    using (var sw = new System.IO.StreamWriter(this.sfd.OpenFile()))
+                    {
+                        var sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
+                        sw.WriteLine("X Value" + sep + "Y Value");
+                        foreach (var p in this.data)
+                        {
+                            sw.WriteLine(p.X + sep + p.Y);
+                        }
+
+                        sw.Close();
+                    }
                     break;
                 case 3:
-                    bw = new System.IO.BinaryWriter(this.sfd.OpenFile());
-                    System.Globalization.CultureInfo ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
-                    System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
-
-                    byte[] bmp = this.BufferFromImage((BitmapImage)this.imgGraph.Source);
-                    bw.Write(bmp.Length);
-                    bw.Write(bmp);
-
-                    //Proportion and zoom
-                    bw.Write(this.prop);
-                    bw.Write(this.zoom);
-
-                    //X axis
-                    bw.Write(this.axes.Xmin.X); bw.Write(this.axes.Xmin.Y); bw.Write(this.axes.Xmin.Value);
-                    bw.Write(this.axes.Xmax.X); bw.Write(this.axes.Xmax.Y); bw.Write(this.axes.Xmax.Value);
-                    bw.Write(this.axes.XLog);
-
-                    //Y axis
-                    bw.Write(this.axes.Ymin.X); bw.Write(this.axes.Ymin.Y); bw.Write(this.axes.Ymin.Value);
-                    bw.Write(this.axes.Ymax.X); bw.Write(this.axes.Ymax.Y); bw.Write(this.axes.Ymax.Value);
-                    bw.Write(this.axes.YLog);
-
-                    //Points
-                    bw.Write(this.data.Count);
-                    for (int i = 0; i < this.data.Count; i++)
+                    using (var bw = new System.IO.BinaryWriter(this.sfd.OpenFile()))
                     {
-                        bw.Write(this.data[i].X);
-                        bw.Write(this.data[i].Y);
-                        bw.Write(this.data[i].RealX);
-                        bw.Write(this.data[i].RealY);
+                        var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
+                        System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
+
+                        if (!(this.imgGraph.Source is BitmapImage bitmapImage))
+                        {
+                            MessageBox.Show(
+                                "This file format does not support the type of image you are using.",
+                                "Unsupported Image Type",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                            return;
+                        }
+
+                        var bmp = this.BufferFromImage(bitmapImage);
+                        bw.Write(bmp.Length);
+                        bw.Write(bmp);
+
+                        //Proportion and zoom
+                        bw.Write(this.prop);
+                        bw.Write(this.zoom);
+
+                        //X axis
+                        bw.Write(this.axes.Xmin.X); bw.Write(this.axes.Xmin.Y); bw.Write(this.axes.Xmin.Value);
+                        bw.Write(this.axes.Xmax.X); bw.Write(this.axes.Xmax.Y); bw.Write(this.axes.Xmax.Value);
+                        bw.Write(this.axes.XLog);
+
+                        //Y axis
+                        bw.Write(this.axes.Ymin.X); bw.Write(this.axes.Ymin.Y); bw.Write(this.axes.Ymin.Value);
+                        bw.Write(this.axes.Ymax.X); bw.Write(this.axes.Ymax.Y); bw.Write(this.axes.Ymax.Value);
+                        bw.Write(this.axes.YLog);
+
+                        //Points
+                        bw.Write(this.data.Count);
+                        foreach (var p in this.data)
+                        {
+                            bw.Write(p.X);
+                            bw.Write(p.Y);
+                            bw.Write(p.RealX);
+                            bw.Write(p.RealY);
+                        }
+
+                        bw.Close();
+                        System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
                     }
-                    bw.Close();
-                    System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
                     break;
             }
         }
 
         public BitmapImage ImageFromBuffer(Byte[] bytes)
         {
-            System.IO.MemoryStream stream = new System.IO.MemoryStream(bytes);
-            BitmapImage image = new BitmapImage();
+            var stream = new System.IO.MemoryStream(bytes);
+            var image = new BitmapImage();
             image.BeginInit();
             image.StreamSource = stream;
             image.EndInit();
@@ -773,8 +849,8 @@ namespace GraphDigitizer.Views
 
         public Byte[] BufferFromImage(BitmapImage imageSource)
         {
-            System.IO.MemoryStream ms = new System.IO.MemoryStream();
-            PngBitmapEncoder enc = new PngBitmapEncoder();
+            var ms = new System.IO.MemoryStream();
+            var enc = new PngBitmapEncoder();
             enc.Frames.Add(BitmapFrame.Create(imageSource));
             enc.Save(ms);
             return ms.ToArray();
@@ -788,7 +864,7 @@ namespace GraphDigitizer.Views
                 return;
             }
 
-            BitmapSource bmp = Clipboard.GetImage();
+            var bmp = Clipboard.GetImage();
 
             //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
             this.prop = 100;
@@ -808,16 +884,30 @@ namespace GraphDigitizer.Views
 
             this.DeletePoints();
             if (this.axes.Xaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Xaxis);
+            }
+
             if (this.axes.Yaxis != null)
+            {
                 this.cnvGraph.Children.Remove(this.axes.Yaxis);
+            }
 
             this.axes.Xmin.X = this.axes.Xmin.Y = this.axes.Xmax.X = this.axes.Xmax.Y = this.axes.Ymin.X = this.axes.Ymin.Y = this.axes.Ymax.X = this.axes.Ymax.Y = double.NaN;
 
             this.SetToolTip();
             this.cnvGraph.Cursor = Cursors.Cross;
         }
+        
+        private struct Point
+        {
+            public int X, Y;
+        }
 
+        private struct Rect
+        {
+            public int Left, Top, Right, Bottom;
+        }
     }
 
     public enum State
@@ -828,53 +918,9 @@ namespace GraphDigitizer.Views
         Points
     }
 
-    public struct POINT
-    {
-        public int X, Y;
-    }
-
-    public struct RECT
-    {
-        public int Left, Top, Right, Bottom;
-    }
-
     public struct Coord
     {
         public double X, Y, Value;
-    }
-
-    public struct Axes
-    {
-        public Coord Xmin, Xmax, Ymin, Ymax;
-        public int Status; //Which is the next point to assign, in the order above
-        public bool XLog, YLog; //If the axes are logarithmic or not
-        public Line Xaxis, Yaxis;
-    }
-
-    public class DataPoint
-    {
-        public double X { get; set; } //The point in transformed coordinates
-        public double Y { get; set; }
-        public double RealX { get; set; } //The point in screen coordinates
-        public double RealY { get; set; }
-        public Label Obj { get; set; } //Label containing the point element on the graph
-        public string Xform { get; set; } //Formatted X and Y
-        public string Yform { get; set; }
-
-        public DataPoint(double x, double y, double realx, double realy, Canvas owner, int proportion, int pos)
-        {
-            this.X = x;
-            this.Y = y;
-            this.RealX = realx;
-            this.RealY = realy;
-            this.Xform = MainWindow.FormatNum(x);
-            this.Yform = MainWindow.FormatNum(y);
-            this.Obj = new Label() { Content = pos % 100, Style = (Style)Application.Current.FindResource("PointStyle") };
-            int index = owner.Children.Add(this.Obj);
-            Canvas.SetLeft(owner.Children[index], realx * proportion / 100 - 8);
-            Canvas.SetTop(owner.Children[index], realy * proportion / 100 - 8);
-            this.Obj.Tag = this;
-        }
     }
 
     public class Commands
