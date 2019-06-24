@@ -338,9 +338,9 @@ namespace GraphDigitizer.Views
         {
             Rect r;
             this.precisionMode = false;
-            r.Top = 0;
+            r.Top = int.MinValue;
             r.Bottom = int.MaxValue;
-            r.Left = 0;
+            r.Left = int.MinValue;
             r.Right = int.MaxValue;
             ClipCursor(ref r);
             if (recover) SetCursorPos((int)this.previousPosition.X, (int)this.previousPosition.Y);
