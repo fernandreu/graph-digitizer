@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using GraphDigitizer.Models;
+using GraphDigitizer.ViewModels;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
@@ -18,22 +19,11 @@ namespace GraphDigitizer.Views
     /// </summary>
     public partial class MainWindow : Window
     {
-        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SetCursorPos")]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        private static extern bool SetCursorPos(int x, int y);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetCursorPos")]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        private static extern bool GetCursorPos(out Point p);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "ClipCursor")]
-        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-        private static extern bool ClipCursor(ref Rect r);
+        private readonly MainWindowViewModel viewModel;
 
         private bool precisionMode = false;
         private System.Windows.Point previousPosition;
-        private State state = State.Idle;
-        private Axes axes = new Axes();
+
         private readonly List<DataPoint> data = new List<DataPoint>();
 
         //Zoom properties, prop in percentage
@@ -62,12 +52,10 @@ namespace GraphDigitizer.Views
         public MainWindow()
         {
             this.InitializeComponent();
+
+            this.viewModel = (MainWindowViewModel) this.DataContext;
+
             this.dgrPoints.ItemsSource = this.data;
-            this.axes.Xmin.Value = 0.0;
-            this.axes.Xmax.Value = 1.0;
-            this.axes.Ymin.Value = 0.0;
-            this.axes.Ymax.Value = 1.0;
-            this.zoom = Properties.Settings.Default.Zoom;
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
                 this.OpenFile(Properties.Settings.Default.LastFile);
@@ -93,24 +81,24 @@ namespace GraphDigitizer.Views
             this.imgZoom.Height = bmp.PixelHeight * this.zoom;
             this.imgZoom.Source = bmp;
 
-            this.state = State.Axes;
-            this.axes.Status = 0;
+            this.viewModel.State = State.Axes;
+            this.Axes.Status = 0;
 
             this.DeletePoints();
-            if (this.axes.Xaxis != null)
+            if (this.Axes.Xaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Xaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Xaxis);
             }
 
-            if (this.axes.Yaxis != null)
+            if (this.Axes.Yaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Yaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Yaxis);
             }
 
-            this.axes.Xmin.X = this.axes.Xmin.Y = this.axes.Xmax.X = this.axes.Xmax.Y = this.axes.Ymin.X = this.axes.Ymin.Y = this.axes.Ymax.X = this.axes.Ymax.Y = double.NaN;
+            this.Axes.Xmin.X = this.Axes.Xmin.Y = this.Axes.Xmax.X = this.Axes.Xmax.Y = this.Axes.Ymin.X = this.Axes.Ymin.Y = this.Axes.Ymax.X = this.Axes.Ymax.Y = double.NaN;
 
             this.SetToolTip();
-            this.cnvGraph.Cursor = Cursors.Cross;
+            this.viewModel.CanvasCursor = Cursors.Cross;
         }
 
         private void OnOpenClicked(object sender, RoutedEventArgs e)
@@ -147,14 +135,14 @@ namespace GraphDigitizer.Views
                 this.imgZoom.Height = bmp.PixelHeight * this.zoom;
                 this.imgZoom.Source = bmp;
 
-                this.axes.Xmin.X = br.ReadDouble(); this.axes.Xmin.Y = br.ReadDouble(); this.axes.Xmin.Value = br.ReadDouble();
-                this.axes.Xmax.X = br.ReadDouble(); this.axes.Xmax.Y = br.ReadDouble(); this.axes.Xmax.Value = br.ReadDouble();
-                this.axes.XLog = br.ReadBoolean();
+                this.Axes.Xmin.X = br.ReadDouble(); this.Axes.Xmin.Y = br.ReadDouble(); this.Axes.Xmin.Value = br.ReadDouble();
+                this.Axes.Xmax.X = br.ReadDouble(); this.Axes.Xmax.Y = br.ReadDouble(); this.Axes.Xmax.Value = br.ReadDouble();
+                this.Axes.XLog = br.ReadBoolean();
                 this.CreateXaxis();
 
-                this.axes.Ymin.X = br.ReadDouble(); this.axes.Ymin.Y = br.ReadDouble(); this.axes.Ymin.Value = br.ReadDouble();
-                this.axes.Ymax.X = br.ReadDouble(); this.axes.Ymax.Y = br.ReadDouble(); this.axes.Ymax.Value = br.ReadDouble();
-                this.axes.YLog = br.ReadBoolean();
+                this.Axes.Ymin.X = br.ReadDouble(); this.Axes.Ymin.Y = br.ReadDouble(); this.Axes.Ymin.Value = br.ReadDouble();
+                this.Axes.Ymax.X = br.ReadDouble(); this.Axes.Ymax.Y = br.ReadDouble(); this.Axes.Ymax.Value = br.ReadDouble();
+                this.Axes.YLog = br.ReadBoolean();
                 this.CreateYaxis();
 
                 this.DeletePoints();
@@ -167,47 +155,11 @@ namespace GraphDigitizer.Views
 
                 this.dgrPoints.Items.Refresh();
 
-                this.state = State.Points;
+                this.viewModel.State = State.Points;
                 this.SetToolTip();
-                this.cnvGraph.Cursor = Cursors.Cross;
+                this.viewModel.CanvasCursor = Cursors.Cross;
 
                 System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
-            }
-        }
-
-        private void SetToolTip()
-        {
-            switch (this.state)
-            {
-                case State.Idle:
-                    this.txtToolTip.Text = "Load an image with the button above";
-                    break;
-                case State.Axes:
-                    switch (this.axes.Status)
-                    {
-                        case 0:
-                            this.txtToolTip.Text = "Select the minor X value of the axes";
-                            break;
-                        case 1:
-                            this.txtToolTip.Text = "Select the major X value of the axes";
-                            break;
-                        case 2:
-                            this.txtToolTip.Text = "Select the minor Y value of the axes";
-                            break;
-                        case 3:
-                            this.txtToolTip.Text = "Select the major Y value of the axes";
-                            break;
-                    }
-                    break;
-                case State.Points:
-                    this.txtToolTip.Text = "Select any point you want to add to the data";
-                    break;
-                case State.Select:
-                    this.txtToolTip.Text = "Click on any point to select it";
-                    break;
-                default:
-                    this.txtToolTip.Text = string.Empty;
-                    break;
             }
         }
 
@@ -239,17 +191,17 @@ namespace GraphDigitizer.Views
             Canvas.SetLeft(this.imgZoom, 100 - p.X * this.zoom);
             Canvas.SetTop(this.imgZoom, 100 - p.Y * this.zoom);
 
-            if (this.state == State.Axes)
+            if (this.viewModel.State == State.Axes)
             {
-                if (this.axes.Status == 1)
+                if (this.Axes.Status == 1)
                 {
-                    this.axes.Xaxis.X2 = p.X;
-                    this.axes.Xaxis.Y2 = p.Y;
+                    this.Axes.Xaxis.X2 = p.X;
+                    this.Axes.Xaxis.Y2 = p.Y;
                 }
-                else if (this.axes.Status == 3)
+                else if (this.Axes.Status == 3)
                 {
-                    this.axes.Yaxis.X2 = p.X;
-                    this.axes.Yaxis.Y2 = p.Y;
+                    this.Axes.Yaxis.X2 = p.X;
+                    this.Axes.Yaxis.Y2 = p.Y;
                 }
             }
         }
@@ -286,20 +238,19 @@ namespace GraphDigitizer.Views
 
         private void ZoomModeIn()
         {
-            System.Windows.Point p;
-            Point prev; 
-            Rect r;
             this.precisionMode = true;
-            GetCursorPos(out prev);
+            MouseUtils.GetCursorPos(out var prev);
             this.previousPosition.X = (double)prev.X;
             this.previousPosition.Y = (double)prev.Y;
-            p = this.PointToScreen(this.cnvZoom.TransformToAncestor(this).Transform(new System.Windows.Point(0, 0)));
-            SetCursorPos((int)p.X + 100, (int)p.Y + 100);
+            var p = this.PointToScreen(this.cnvZoom.TransformToAncestor(this).Transform(new System.Windows.Point(0, 0)));
+            MouseUtils.SetCursorPos((int)p.X + 100, (int)p.Y + 100);
+
+            MouseUtils.Rect r;
             r.Top = (int)p.Y;
             r.Bottom = (int)p.Y + 200;
             r.Left = (int)p.X;
             r.Right = (int)p.X + 200;
-            ClipCursor(ref r);
+            MouseUtils.ClipCursor(ref r);
         }
 
         private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
@@ -320,30 +271,33 @@ namespace GraphDigitizer.Views
                 return;
             }
 
+            // TODO: This should all be driven from xaml
             switch (e.Key)
             {
                 case Key.F1:
                     this.OnHelpClicked(sender, e);
                     break;
                 case Key.D1:
-                    this.OnSelectClicked(sender, e);
+                    this.viewModel.SelectModeCommand.Execute(null);
                     break;
                 case Key.D2:
-                    this.OnPointsClicked(sender, e);
+                    this.viewModel.PointsModeCommand.Execute(null);
                     break;
             }
         }
 
         private void ZoomModeOut(bool recover = true)
         {
-            Rect r;
+            MouseUtils.Rect r;
             this.precisionMode = false;
             r.Top = int.MinValue;
             r.Bottom = int.MaxValue;
             r.Left = int.MinValue;
             r.Right = int.MaxValue;
-            ClipCursor(ref r);
-            if (recover) SetCursorPos((int)this.previousPosition.X, (int)this.previousPosition.Y);
+            MouseUtils.ClipCursor(ref r);
+            if (recover) {
+                MouseUtils.SetCursorPos((int)this.previousPosition.X, (int)this.previousPosition.Y);
+            }
         }
 
         private void OnWindowPreviewKeyUp(object sender, KeyEventArgs e)
@@ -356,18 +310,18 @@ namespace GraphDigitizer.Views
         {
             double Xaxis, Yaxis;
             //First: obtain the equivalent point in the X axis and in the Y axis
-            Xaxis = -((this.axes.Ymax.X - this.axes.Ymin.X) * (this.axes.Xmax.X * this.axes.Xmin.Y - this.axes.Xmax.Y * this.axes.Xmin.X) - (this.axes.Xmax.X - this.axes.Xmin.X) * (X * (this.axes.Ymin.Y - this.axes.Ymax.Y) + Y * (this.axes.Ymax.X - this.axes.Ymin.X))) / ((this.axes.Xmax.Y - this.axes.Xmin.Y) * (this.axes.Ymax.X - this.axes.Ymin.X) - (this.axes.Xmax.X - this.axes.Xmin.X) * (this.axes.Ymax.Y - this.axes.Ymin.Y));
-            Yaxis = (Y * (this.axes.Xmax.X - this.axes.Xmin.X) * (this.axes.Ymax.Y - this.axes.Ymin.Y) + (this.axes.Xmax.Y - this.axes.Xmin.Y) * (this.axes.Ymax.Y * this.axes.Ymin.X - this.axes.Ymax.X * this.axes.Ymin.Y + X * (this.axes.Ymin.Y - this.axes.Ymax.Y))) / ((this.axes.Xmin.Y - this.axes.Xmax.Y) * (this.axes.Ymax.X - this.axes.Ymin.X) + (this.axes.Xmax.X - this.axes.Xmin.X) * (this.axes.Ymax.Y - this.axes.Ymin.Y));
+            Xaxis = -((this.Axes.Ymax.X - this.Axes.Ymin.X) * (this.Axes.Xmax.X * this.Axes.Xmin.Y - this.Axes.Xmax.Y * this.Axes.Xmin.X) - (this.Axes.Xmax.X - this.Axes.Xmin.X) * (X * (this.Axes.Ymin.Y - this.Axes.Ymax.Y) + Y * (this.Axes.Ymax.X - this.Axes.Ymin.X))) / ((this.Axes.Xmax.Y - this.Axes.Xmin.Y) * (this.Axes.Ymax.X - this.Axes.Ymin.X) - (this.Axes.Xmax.X - this.Axes.Xmin.X) * (this.Axes.Ymax.Y - this.Axes.Ymin.Y));
+            Yaxis = (Y * (this.Axes.Xmax.X - this.Axes.Xmin.X) * (this.Axes.Ymax.Y - this.Axes.Ymin.Y) + (this.Axes.Xmax.Y - this.Axes.Xmin.Y) * (this.Axes.Ymax.Y * this.Axes.Ymin.X - this.Axes.Ymax.X * this.Axes.Ymin.Y + X * (this.Axes.Ymin.Y - this.Axes.Ymax.Y))) / ((this.Axes.Xmin.Y - this.Axes.Xmax.Y) * (this.Axes.Ymax.X - this.Axes.Ymin.X) + (this.Axes.Xmax.X - this.Axes.Xmin.X) * (this.Axes.Ymax.Y - this.Axes.Ymin.Y));
 
-            if (this.axes.XLog)
-                RealX = Math.Pow(10.0, Math.Log10(this.axes.Xmin.Value) + (Xaxis - this.axes.Xmin.X) / (this.axes.Xmax.X - this.axes.Xmin.X) * (Math.Log10(this.axes.Xmax.Value) - Math.Log10(this.axes.Xmin.Value)));
+            if (this.Axes.XLog)
+                RealX = Math.Pow(10.0, Math.Log10(this.Axes.Xmin.Value) + (Xaxis - this.Axes.Xmin.X) / (this.Axes.Xmax.X - this.Axes.Xmin.X) * (Math.Log10(this.Axes.Xmax.Value) - Math.Log10(this.Axes.Xmin.Value)));
             else
-                RealX = this.axes.Xmin.Value + (Xaxis - this.axes.Xmin.X) / (this.axes.Xmax.X - this.axes.Xmin.X) * (this.axes.Xmax.Value - this.axes.Xmin.Value);
+                RealX = this.Axes.Xmin.Value + (Xaxis - this.Axes.Xmin.X) / (this.Axes.Xmax.X - this.Axes.Xmin.X) * (this.Axes.Xmax.Value - this.Axes.Xmin.Value);
 
-            if (this.axes.YLog)
-                RealY = Math.Pow(10.0, Math.Log10(this.axes.Ymin.Value) + (Yaxis - this.axes.Ymin.Y) / (this.axes.Ymax.Y - this.axes.Ymin.Y) * (Math.Log10(this.axes.Ymax.Value) - Math.Log10(this.axes.Ymin.Value)));
+            if (this.Axes.YLog)
+                RealY = Math.Pow(10.0, Math.Log10(this.Axes.Ymin.Value) + (Yaxis - this.Axes.Ymin.Y) / (this.Axes.Ymax.Y - this.Axes.Ymin.Y) * (Math.Log10(this.Axes.Ymax.Value) - Math.Log10(this.Axes.Ymin.Value)));
             else
-                RealY = this.axes.Ymin.Value + (Yaxis - this.axes.Ymin.Y) / (this.axes.Ymax.Y - this.axes.Ymin.Y) * (this.axes.Ymax.Value - this.axes.Ymin.Value);
+                RealY = this.Axes.Ymin.Value + (Yaxis - this.Axes.Ymin.Y) / (this.Axes.Ymax.Y - this.Axes.Ymin.Y) * (this.Axes.Ymax.Value - this.Axes.Ymin.Value);
         }
 
         private void AddPoint(double x, double y)
@@ -380,17 +334,17 @@ namespace GraphDigitizer.Views
 
         private void CreateXaxis()
         {
-            if (this.axes.Xaxis != null)
+            if (this.Axes.Xaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Xaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Xaxis);
             }
 
-            this.axes.Xaxis = new Line
+            this.Axes.Xaxis = new Line
             {
-                X1 = this.axes.Xmin.X * this.prop / 100,
-                Y1 = this.axes.Xmin.Y * this.prop / 100,
-                X2 = this.axes.Xmax.X * this.prop / 100,
-                Y2 = this.axes.Xmax.Y * this.prop / 100,
+                X1 = this.Axes.Xmin.X * this.prop / 100,
+                Y1 = this.Axes.Xmin.Y * this.prop / 100,
+                X2 = this.Axes.Xmax.X * this.prop / 100,
+                Y2 = this.Axes.Xmax.Y * this.prop / 100,
                 Stroke = Brushes.Red,
                 StrokeThickness = 2,
                 StrokeDashArray = new DoubleCollection
@@ -400,22 +354,22 @@ namespace GraphDigitizer.Views
                 StrokeEndLineCap = PenLineCap.Triangle
             };
 
-            this.cnvGraph.Children.Add(this.axes.Xaxis);
+            this.cnvGraph.Children.Add(this.Axes.Xaxis);
         }
 
         private void CreateYaxis()
         {
-            if (this.axes.Yaxis != null)
+            if (this.Axes.Yaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Yaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Yaxis);
             }
 
-            this.axes.Yaxis = new Line
+            this.Axes.Yaxis = new Line
             {
-                X1 = this.axes.Ymin.X * this.prop / 100,
-                Y1 = this.axes.Ymin.Y * this.prop / 100,
-                X2 = this.axes.Ymax.X * this.prop / 100,
-                Y2 = this.axes.Ymax.Y * this.prop / 100,
+                X1 = this.Axes.Ymin.X * this.prop / 100,
+                Y1 = this.Axes.Ymin.Y * this.prop / 100,
+                X2 = this.Axes.Ymax.X * this.prop / 100,
+                Y2 = this.Axes.Ymax.Y * this.prop / 100,
                 Stroke = Brushes.Blue,
                 StrokeThickness = 2,
                 StrokeDashArray = new DoubleCollection
@@ -424,45 +378,45 @@ namespace GraphDigitizer.Views
                 },
                 StrokeEndLineCap = PenLineCap.Round
             };
-            this.cnvGraph.Children.Add(this.axes.Yaxis);
+            this.cnvGraph.Children.Add(this.Axes.Yaxis);
         }
 
         private void SelectPoint(double X, double Y)
         {
-            if (this.state == State.Axes)
+            if (this.viewModel.State == State.Axes)
             {
-                switch (this.axes.Status)
+                switch (this.Axes.Status)
                 {
                     case 0: //Xmin
-                        this.axes.Xmin.X = X;
-                        this.axes.Xmin.Y = Y;
-                        this.axes.Xmax.X = X;
-                        this.axes.Xmax.Y = Y;
+                        this.Axes.Xmin.X = X;
+                        this.Axes.Xmin.Y = Y;
+                        this.Axes.Xmax.X = X;
+                        this.Axes.Xmax.Y = Y;
                         this.CreateXaxis();
                         break;
                     case 1:
-                        this.axes.Xmax.X = X;
-                        this.axes.Xmax.Y = Y;
+                        this.Axes.Xmax.X = X;
+                        this.Axes.Xmax.Y = Y;
                         this.CreateXaxis();
                         break;
                     case 2:
-                        this.axes.Ymin.X = X;
-                        this.axes.Ymin.Y = Y;
-                        this.axes.Ymax.X = X;
-                        this.axes.Ymax.Y = Y;
+                        this.Axes.Ymin.X = X;
+                        this.Axes.Ymin.Y = Y;
+                        this.Axes.Ymax.X = X;
+                        this.Axes.Ymax.Y = Y;
                         this.CreateYaxis();
                         break;
                     case 3:
-                        this.axes.Ymax.X = X;
-                        this.axes.Ymax.Y = Y;
+                        this.Axes.Ymax.X = X;
+                        this.Axes.Ymax.Y = Y;
                         this.CreateYaxis();
                         break;
                 }
-                this.axes.Status++;
-                if (this.axes.Status == 4)
+                this.Axes.Status++;
+                if (this.Axes.Status == 4)
                     this.SelectAxesProp();
             }
-            else if (this.state == State.Points)
+            else if (this.viewModel.State == State.Points)
             {
                 this.AddPoint(X, Y);
             }
@@ -481,7 +435,7 @@ namespace GraphDigitizer.Views
 
         private void PointMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (this.state != State.Select) return;
+            if (this.viewModel.State != State.Select) return;
             if (e.ChangedButton == MouseButton.Left) //Select mode
             {
                 if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) //Add to current selection. If it was already selected, unselect
@@ -526,7 +480,7 @@ namespace GraphDigitizer.Views
         private void imgGraph_MouseDown(object sender, MouseButtonEventArgs e)
         {
             System.Windows.Point p = e.GetPosition(this.imgGraph);
-            if (this.state == State.Select)
+            if (this.viewModel.State == State.Select)
             {
                 if (e.ChangedButton != MouseButton.Left) return;
                 this.selecting = true;
@@ -548,8 +502,8 @@ namespace GraphDigitizer.Views
 
         private void btnAxes_Click(object sender, RoutedEventArgs e)
         {
-            this.state = State.Axes;
-            this.axes.Status = 0;
+            this.viewModel.State = State.Axes;
+            this.Axes.Status = 0;
             this.SetToolTip();
         }
 
@@ -561,23 +515,22 @@ namespace GraphDigitizer.Views
         private void SelectAxesProp()
         {
             if (this.precisionMode) this.ZoomModeOut(false);
-            var ap = new AxesProp(this.axes);
-            Point p;
-            GetCursorPos(out p);
+            var ap = new AxesProp(this.Axes);
+            MouseUtils.GetCursorPos(out var p);
             //The program will try to position the window leaving the mouse in a corner
             if (p.X + ap.Width > SystemParameters.PrimaryScreenWidth)
                 ap.Left = p.X - ap.Width + 20;
             else
                 ap.Left = p.X;
 
-            if (p.Y + ap.Height > SystemParameters.PrimaryScreenHeight - 50) //Thresold for the Windows taskbar
+            if (p.Y + ap.Height > SystemParameters.PrimaryScreenHeight - 50) // Thresold for the Windows taskbar
                 ap.Top = p.Y - ap.Height;
             else
                 ap.Top = p.Y;
 
             ap.ShowDialog();
-            this.axes = ap.Axes;
-            this.state = State.Points;
+            this.Axes = ap.Axes;
+            this.viewModel.State = State.Points;
         }
 
         private void DeletePoints()
@@ -737,20 +690,6 @@ namespace GraphDigitizer.Views
             }
         }
 
-        private void OnSelectClicked(object sender, RoutedEventArgs e)
-        {
-            this.state = State.Select;
-            this.SetToolTip();
-            this.cnvGraph.Cursor = Cursors.Arrow;
-        }
-
-        private void OnPointsClicked(object sender, RoutedEventArgs e)
-        {
-            this.state = State.Points;
-            this.SetToolTip();
-            this.cnvGraph.Cursor = Cursors.Cross;
-        }
-
         private void OnSaveClicked(object sender, RoutedEventArgs e)
         {
             if (!this.sfd.ShowDialog().Value)
@@ -811,14 +750,14 @@ namespace GraphDigitizer.Views
                         bw.Write(this.zoom);
 
                         //X axis
-                        bw.Write(this.axes.Xmin.X); bw.Write(this.axes.Xmin.Y); bw.Write(this.axes.Xmin.Value);
-                        bw.Write(this.axes.Xmax.X); bw.Write(this.axes.Xmax.Y); bw.Write(this.axes.Xmax.Value);
-                        bw.Write(this.axes.XLog);
+                        bw.Write(this.Axes.Xmin.X); bw.Write(this.Axes.Xmin.Y); bw.Write(this.Axes.Xmin.Value);
+                        bw.Write(this.Axes.Xmax.X); bw.Write(this.Axes.Xmax.Y); bw.Write(this.Axes.Xmax.Value);
+                        bw.Write(this.Axes.XLog);
 
                         //Y axis
-                        bw.Write(this.axes.Ymin.X); bw.Write(this.axes.Ymin.Y); bw.Write(this.axes.Ymin.Value);
-                        bw.Write(this.axes.Ymax.X); bw.Write(this.axes.Ymax.Y); bw.Write(this.axes.Ymax.Value);
-                        bw.Write(this.axes.YLog);
+                        bw.Write(this.Axes.Ymin.X); bw.Write(this.Axes.Ymin.Y); bw.Write(this.Axes.Ymin.Value);
+                        bw.Write(this.Axes.Ymax.X); bw.Write(this.Axes.Ymax.Y); bw.Write(this.Axes.Ymax.Value);
+                        bw.Write(this.Axes.YLog);
 
                         //Points
                         bw.Write(this.data.Count);
@@ -837,7 +776,7 @@ namespace GraphDigitizer.Views
             }
         }
 
-        public BitmapImage ImageFromBuffer(Byte[] bytes)
+        public BitmapImage ImageFromBuffer(byte[] bytes)
         {
             var stream = new System.IO.MemoryStream(bytes);
             var image = new BitmapImage();
@@ -847,7 +786,7 @@ namespace GraphDigitizer.Views
             return image;
         }
 
-        public Byte[] BufferFromImage(BitmapImage imageSource)
+        public byte[] BufferFromImage(BitmapImage imageSource)
         {
             var ms = new System.IO.MemoryStream();
             var enc = new PngBitmapEncoder();
@@ -879,58 +818,38 @@ namespace GraphDigitizer.Views
             this.imgZoom.Height = bmp.PixelHeight * this.zoom;
             this.imgZoom.Source = bmp;
 
-            this.state = State.Axes;
-            this.axes.Status = 0;
+            this.viewModel.State = State.Axes;
+            this.Axes.Status = 0;
 
             this.DeletePoints();
-            if (this.axes.Xaxis != null)
+            if (this.Axes.Xaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Xaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Xaxis);
             }
 
-            if (this.axes.Yaxis != null)
+            if (this.Axes.Yaxis != null)
             {
-                this.cnvGraph.Children.Remove(this.axes.Yaxis);
+                this.cnvGraph.Children.Remove(this.Axes.Yaxis);
             }
 
-            this.axes.Xmin.X = this.axes.Xmin.Y = this.axes.Xmax.X = this.axes.Xmax.Y = this.axes.Ymin.X = this.axes.Ymin.Y = this.axes.Ymax.X = this.axes.Ymax.Y = double.NaN;
+            this.Axes.Xmin.X = this.Axes.Xmin.Y = this.Axes.Xmax.X = this.Axes.Xmax.Y = this.Axes.Ymin.X = this.Axes.Ymin.Y = this.Axes.Ymax.X = this.Axes.Ymax.Y = double.NaN;
 
             this.SetToolTip();
-            this.cnvGraph.Cursor = Cursors.Cross;
+            this.viewModel.CanvasCursor = Cursors.Cross;
         }
+
+        // TODO: All code below should be removed once MVVM is fully implemented
         
-        private struct Point
+        private Axes Axes
         {
-            public int X, Y;
+            get => this.viewModel.Axes;
+            set => this.viewModel.Axes = value;
         }
 
-        private struct Rect
+        private void SetToolTip()
         {
-            public int Left, Top, Right, Bottom;
-        }
-    }
-
-    public enum State
-    {
-        Idle,
-        Axes,
-        Select,
-        Points
-    }
-
-    public struct Coord
-    {
-        public double X, Y, Value;
-    }
-
-    public class Commands
-    {
-        public static RoutedCommand Help;
-
-        static Commands()
-        {
-            Help = new RoutedCommand("Help", typeof(Commands));
-            Help.InputGestures.Add(new KeyGesture(Key.F1));
+            // TODO: Make SetToolTip() private after removing this
+            this.viewModel.SetToolTip();
         }
     }
 }

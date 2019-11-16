@@ -47,8 +47,8 @@ namespace GraphDigitizer.Views
                 this.Axes.Ymax.Value = val;
             }
 
-            this.Axes.XLog = (bool)this.XLogBox.IsChecked;
-            this.Axes.YLog = (bool)this.YLogBox.IsChecked;
+            this.Axes.XLog = this.XLogBox.IsChecked.Value;
+            this.Axes.YLog = this.YLogBox.IsChecked.Value;
             this.Close();
         }
 
