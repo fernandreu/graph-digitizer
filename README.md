@@ -10,9 +10,9 @@ be be logarithmic.
 The points can be easily copied into the clipboard and pasted in other programs, such as text files or spreadsheets. The program
 also supports graphs that are not perfectly square (e.g. from an angled photograph).
 
-**Note:** Although the latest release is fully functional, the project is quite old and undergoing several changes that will allow
+**Note: Although the latest release is fully functional, the project is quite old and undergoing several changes that will allow
 further growth. The most important of these is the migration from a pure view approach to the MVVM pattern. After this, testing and
-an a CI/CD pipeline will also be implemented.
+an a CI/CD pipeline will also be implemented.**
 
 ### Download
 
