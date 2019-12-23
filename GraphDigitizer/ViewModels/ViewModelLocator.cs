@@ -1,5 +1,4 @@
-﻿using CommonServiceLocator;
-using GalaSoft.MvvmLight.Ioc;
+﻿using GalaSoft.MvvmLight.Ioc;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -7,9 +6,6 @@ namespace GraphDigitizer.ViewModels
     {
         public ViewModelLocator()
         {
-            ServiceLocator.SetLocatorProvider(() => SimpleIoc.Default);
-
-
             SimpleIoc.Default.Register<MainWindowViewModel>();
         }
 

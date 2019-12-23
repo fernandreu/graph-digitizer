@@ -75,7 +75,7 @@
         <Button Height="26" HorizontalAlignment="Left" Margin="155,0,0,0" VerticalAlignment="Top" Width="30" ToolTip="Selection tool (Hotkey: 1)" Command="{Binding SelectModeCommand}" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="/Resources/Select.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="186,0,0,0" VerticalAlignment="Top" Width="30" ToolTip="Pick point tool (Hotkey: 2)" Click="OnPointsClicked" Style="{StaticResource ToolBarButtonStyle}" Grid.ColumnSpan="2">
+        <Button Height="26" HorizontalAlignment="Left" Margin="186,0,0,0" VerticalAlignment="Top" Width="30" ToolTip="Pick point tool (Hotkey: 2)" Command="{Binding PointsModeCommand}" Style="{StaticResource ToolBarButtonStyle}" Grid.ColumnSpan="2">
             <Image Source="/Resources/Crosshair.png"/>
         </Button>
         <Button Height="26" HorizontalAlignment="Left" Margin="49,0,0,0" x:Name="btnDelPoints" VerticalAlignment="Top" Width="30" Click="OnDeletePointsClicked" ToolTip="Delete all the selected points" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
@@ -106,22 +106,22 @@
         <Border Grid.ColumnSpan="2" Grid.Row="3" Height="20" VerticalAlignment="Center" HorizontalAlignment="Left" Width="300">
             <TextBlock Text="{Binding StatusText}" Margin="5,0,0,0" TextAlignment="Left" Grid.ColumnSpan="2" Foreground="#FFB4C4CE" VerticalAlignment="Center"/>
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="80" Height="20">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20">
             <TextBlock x:Name="txtRealY" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="80" Height="20" Margin="0,0,80,0">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20" Margin="0,0,80,0">
             <TextBlock x:Name="txtRealX" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="35" Height="20" Margin="0,0,160,0">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="35" Height="20" Margin="0,0,160,0">
             <TextBlock x:Name="txtRealCoords" Text="Real:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,200,0">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,200,0">
             <TextBlock x:Name="txtScreenY" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,250,0">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,250,0">
             <TextBlock x:Name="txtScreenX" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
-        <Border Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Width="40" Height="20" Margin="0,0,300,0">
+        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="40" Height="20" Margin="0,0,300,0">
             <TextBlock x:Name="txtScreenCoords" Text="Screen:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
     </Grid>
