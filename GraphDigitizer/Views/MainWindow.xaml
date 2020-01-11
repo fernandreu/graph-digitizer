@@ -2,6 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:GraphDigitizer.Converters"
+        xmlns:viewModels="clr-namespace:GraphDigitizer.ViewModels"
+        xmlns:markup="clr-namespace:GraphDigitizer.Markup"
         mc:Ignorable="d" x:Class="GraphDigitizer.Views.MainWindow"
         Title="Graph Digitizer"
         Height="733" 
@@ -13,7 +16,46 @@
         Closed="OnWindowClosed" 
         PreviewMouseUp="OnWindowPreviewMouseUp" 
         DataContext="{Binding Main, Source={StaticResource Locator}}"
-        Background="#FFC6D3D6">
+        Background="#FFC6D3D6"
+        x:Name="Window">
+    <Window.Resources>
+        <converters:CoordinateConverter x:Key="CoordinateConverter"/>
+
+        <!--TODO: This should be in line with the point style which defines the width / height-->
+        <converters:OffsetConverter x:Key="PointOffsetConverter" Offset="-8"/>
+
+        <converters:FactorConverter x:Key="FactorConverter"/>
+
+        <DataTemplate x:Key="ImageDataTemplate">
+            <Image 
+                d:DataContext="{d:DesignInstance viewModels:TargetImage}"
+                Tag="{Binding}"
+                Source="{Binding Source}"
+                Height="{Binding DataContext.TargetImage.Height, ElementName=Window}" 
+                Width="{Binding DataContext.TargetImage.Width, ElementName=Window}"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PointDataTemplate">
+            <!--TODO: Label indices were previously capped at 99 (using % 100)-->
+            <Label
+                d:DataContext="{d:DesignInstance viewModels:DataPoint}"
+                Tag="{Binding}"
+                Content="{Binding Index}"
+                MouseDown="PointMouseDown"
+                Style="{StaticResource PointStyle}">
+                <Label.RenderTransform>
+                    <TranslateTransform
+                        X="{Binding RealX, Converter={StaticResource PointOffsetConverter}}" 
+                        Y="{Binding RealY, Converter={StaticResource PointOffsetConverter}}"/>
+                </Label.RenderTransform>
+            </Label>
+        </DataTemplate>
+
+        <markup:CanvasSelector 
+            x:Key="CanvasSelector"
+            ImageTemplate="{StaticResource ImageDataTemplate}"
+            PointTemplate="{StaticResource PointDataTemplate}"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="26" />
@@ -34,7 +76,7 @@
                 </LinearGradientBrush>
             </Border.Background>
         </Border>
-        <DataGrid x:Name="dgrPoints" Grid.Row="1" Block.TextAlignment="Center" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" ColumnWidth="95" CanUserSortColumns="False" CanUserResizeRows="False" CanUserResizeColumns="False" CanUserReorderColumns="False" FontSize="11" SelectionChanged="dgrPoints_SelectionChanged" IsReadOnly="True" Background="#FFE9EFF5" HeadersVisibility="Column" AutoGenerateColumns="False" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" BorderBrush="#FF44587C" BorderThickness="0,0,0,1">
+        <DataGrid x:Name="dgrPoints" Grid.Row="1" Block.TextAlignment="Center" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" ColumnWidth="95" CanUserSortColumns="False" CanUserResizeRows="False" CanUserResizeColumns="False" CanUserReorderColumns="False" FontSize="11" SelectionChanged="OnTableSelectionChanged" IsReadOnly="True" Background="#FFE9EFF5" HeadersVisibility="Column" AutoGenerateColumns="False" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" BorderBrush="#FF44587C" BorderThickness="0,0,0,1">
             <DataGrid.ContextMenu>
                 <ContextMenu>
                     <MenuItem Command="ApplicationCommands.SelectAll" Header="Select All" />
@@ -43,15 +85,35 @@
                 </ContextMenu>
             </DataGrid.ContextMenu>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="X Value" Binding="{Binding Xform}" ClipboardContentBinding="{Binding X, StringFormat=F10}" />
+                <DataGridTextColumn Header="X Value" Binding="{Binding Xform}" ClipboardContentBinding="{Binding X, StringFormat=F10}"/>
                 <DataGridTextColumn Header="Y Value" Binding="{Binding Yform}" ClipboardContentBinding="{Binding Y, StringFormat=F10}"/>
             </DataGrid.Columns>
         </DataGrid>
         <StatusBar x:Name="stbMain" Grid.Row="3" ClipToBounds="False" Background="{StaticResource dgrHeaderBackground}" Grid.ColumnSpan="2" BorderBrush="#FF555555" BorderThickness="0,1,0,0"/>
         <ScrollViewer Grid.Column="1" Grid.Row="1" x:Name="svwGraph" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Focusable="False">
-            <Canvas Height="100" x:Name="cnvGraph" Width="200" ClipToBounds="True" MouseMove="imgGraph_MouseMove" MouseDown="imgGraph_MouseDown" Cursor="{Binding CanvasCursor}" UseLayoutRounding="True">
-                <Image Height="150" x:Name="imgGraph" Width="200" Canvas.Left="0" Canvas.Top="0"/>
-            </Canvas>
+            <ItemsControl 
+                x:Name="DataCanvas"
+                MouseMove="imgGraph_MouseMove"
+                MouseDown="imgGraph_MouseDown" 
+                Height="{Binding TargetImage.Height}"
+                Width="{Binding TargetImage.Width}"
+                Cursor="{Binding CanvasCursor}" 
+                UseLayoutRounding="True"
+                ItemsSource="{Binding CanvasElements}"
+                ItemTemplateSelector="{StaticResource CanvasSelector}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Canvas 
+                            ClipToBounds="True">
+                            <Canvas.RenderTransform>
+                                <ScaleTransform 
+                                    ScaleX="{Binding CanvasFactor, Converter={StaticResource FactorConverter}}"
+                                    ScaleY="{Binding CanvasFactor, Converter={StaticResource FactorConverter}}"/>
+                            </Canvas.RenderTransform>
+                        </Canvas>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
         </ScrollViewer>
         <Border Grid.Column="1" Grid.Row="1" x:Name="brdSeparator" Grid.RowSpan="2" BorderBrush="#FF45597C" BorderThickness="1,0,0,0"/>
         <Canvas Grid.Row="2" x:Name="cnvZoom" ClipToBounds="True" MouseMove="cnvZoom_MouseMove" Cursor="Cross">
@@ -78,51 +140,51 @@
         <Button Height="26" HorizontalAlignment="Left" Margin="186,0,0,0" VerticalAlignment="Top" Width="30" ToolTip="Pick point tool (Hotkey: 2)" Command="{Binding PointsModeCommand}" Style="{StaticResource ToolBarButtonStyle}" Grid.ColumnSpan="2">
             <Image Source="/Resources/Crosshair.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="49,0,0,0" x:Name="btnDelPoints" VerticalAlignment="Top" Width="30" Click="OnDeletePointsClicked" ToolTip="Delete all the selected points" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="49,0,0,0" VerticalAlignment="Top" Width="30" Click="OnDeletePointsClicked" ToolTip="Delete all the selected points" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="/Resources/Delete.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="80,0,0,0" x:Name="btnZoomIn" VerticalAlignment="Top" Width="30" Click="OnZoomInClicked" ToolTip="Increase the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="80,0,0,0" VerticalAlignment="Top" Width="30" Click="OnZoomInClicked" ToolTip="Increase the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="/Resources/ZoomIn.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="111,0,0,0" x:Name="btnZoomOut" VerticalAlignment="Top" Width="30" Click="OnZoomOutClicked" ToolTip="Decrease the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" Margin="111,0,0,0" VerticalAlignment="Top" Width="30" Click="OnZoomOutClicked" ToolTip="Decrease the amount of zoom in the side image" Style="{StaticResource ToolBarButtonStyle}" Grid.Column="1">
             <Image Source="/Resources/ZoomOut.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="142,0,0,0" x:Name="btnEnlarge" VerticalAlignment="Top" Width="30" Click="OnEnlargeClicked" ToolTip="Enlarge the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="142,0,0,0" VerticalAlignment="Top" Width="30" Click="OnEnlargeClicked" ToolTip="Enlarge the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="/Resources/Enlarge.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="173,0,0,0" x:Name="btnReduce" VerticalAlignment="Top" Width="30" Click="OnReduceClicked" ToolTip="Reduce the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="173,0,0,0" VerticalAlignment="Top" Width="30" Click="OnReduceClicked" ToolTip="Reduce the main image" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="/Resources/Reduce.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="204,0,0,0" x:Name="btnRestore" VerticalAlignment="Top" Width="30" Click="OnRestoreClicked" ToolTip="Restore the main image size" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="204,0,0,0" VerticalAlignment="Top" Width="30" Click="OnRestoreClicked" ToolTip="Restore the main image size" Grid.Column="1" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="/Resources/OriginalSize.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" Margin="235,0,0,0" x:Name="btnHelp" VerticalAlignment="Top" Width="30" Click="OnHelpClicked" Grid.Column="1" ToolTip="Show the help window (Hotkey: H)" Padding="0" Style="{StaticResource ToolBarButtonStyle}">
+        <Button Height="26" HorizontalAlignment="Left" Margin="235,0,0,0" VerticalAlignment="Top" Width="30" Click="OnHelpClicked" Grid.Column="1" ToolTip="Show the help window (Hotkey: H)" Padding="0" Style="{StaticResource ToolBarButtonStyle}">
             <Image Source="/Resources/Help.png"/>
         </Button>
-        <Button Height="26" HorizontalAlignment="Left" x:Name="btnCopy" VerticalAlignment="Top" Width="30" Click="OnCopyClicked" ToolTip="Copy all the points to clipboard" Style="{StaticResource ToolBarButtonStyle}" Margin="17,0,0,0" Grid.Column="1">
+        <Button Height="26" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Click="OnCopyClicked" ToolTip="Copy all the points to clipboard" Style="{StaticResource ToolBarButtonStyle}" Margin="17,0,0,0" Grid.Column="1">
             <Image Source="/Resources/Copy.png"/>
         </Button>
-        <Border x:Name="brdDgrFix" Margin="188,0,0,0" Grid.Row="1" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="12" Background="{StaticResource dgrHeaderBackground}"/>
+        <Border Margin="188,0,0,0" Grid.Row="1" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="12" Background="{StaticResource dgrHeaderBackground}"/>
         <Border Grid.ColumnSpan="2" Grid.Row="3" Height="20" VerticalAlignment="Center" HorizontalAlignment="Left" Width="300">
             <TextBlock Text="{Binding StatusText}" Margin="5,0,0,0" TextAlignment="Left" Grid.ColumnSpan="2" Foreground="#FFB4C4CE" VerticalAlignment="Center"/>
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20">
-            <TextBlock x:Name="txtRealY" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding RealMousePosition.Y, Converter={StaticResource CoordinateConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20" Margin="0,0,80,0">
-            <TextBlock x:Name="txtRealX" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding RealMousePosition.X, Converter={StaticResource CoordinateConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="35" Height="20" Margin="0,0,160,0">
-            <TextBlock x:Name="txtRealCoords" Text="Real:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="Real:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,200,0">
-            <TextBlock x:Name="txtScreenY" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding ScreenMousePosition.Y, StringFormat='{}{0:F2}'}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,250,0">
-            <TextBlock x:Name="txtScreenX" Text="0.0" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding ScreenMousePosition.X, StringFormat='{}{0:F2}'}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="40" Height="20" Margin="0,0,300,0">
-            <TextBlock x:Name="txtScreenCoords" Text="Screen:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="Screen:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
     </Grid>
 </Window>

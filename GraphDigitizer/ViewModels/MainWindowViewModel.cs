@@ -1,8 +1,14 @@
-﻿using System.Windows.Input;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Windows;
+using System.Windows.Input;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
+using GraphDigitizer.Events;
+using GraphDigitizer.Interfaces;
 using GraphDigitizer.Models;
-using GraphDigitizer.Views;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -12,7 +18,39 @@ namespace GraphDigitizer.ViewModels
         {
             this.SelectModeCommand = new RelayCommand(this.ExecuteSelectModeCommand);
             this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
+            this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
+
+            this.Data.CollectionChanged += this.OnDataChanged;
         }
+
+        private TargetImage targetImage;
+
+        public TargetImage TargetImage
+        {
+            get => this.targetImage;
+            set
+            {
+                var previous = this.targetImage;
+                if (!this.Set(ref this.targetImage, value))
+                {
+                    return;
+                }
+
+                if (previous != null)
+                {
+                    this.CanvasElements.Remove(previous);
+                }
+
+                if (value != null)
+                {
+                    this.CanvasElements.Insert(0, value);
+                }
+            }
+        }
+
+        public ObservableCollection<DataPoint> Data { get; } = new ObservableCollection<DataPoint>();
+
+        public ObservableCollection<ICanvasElement> CanvasElements { get; } = new ObservableCollection<ICanvasElement>();
 
         private Axes axes = new Axes();
 
@@ -28,6 +66,14 @@ namespace GraphDigitizer.ViewModels
         {
             get => this.zoom;
             set => this.Set(ref this.zoom, value);
+        }
+
+        private int canvasFactor;
+
+        public int CanvasFactor
+        {
+            get => this.canvasFactor;
+            set => this.Set(ref this.canvasFactor, value);
         }
 
         private State state = State.Idle;
@@ -49,6 +95,22 @@ namespace GraphDigitizer.ViewModels
             set => this.Set(ref this.statusText, value);
         }
 
+        private Point realMousePosition;
+
+        public Point RealMousePosition
+        {
+            get => this.realMousePosition;
+            set => this.Set(ref this.realMousePosition, value);
+        }
+
+        private Point screenMousePosition;
+
+        public Point ScreenMousePosition
+        {
+            get => this.screenMousePosition;
+            set => this.Set(ref this.screenMousePosition, value);
+        }
+
         private Cursor canvasCursor = Cursors.Cross;
 
         /// <summary>
@@ -64,6 +126,10 @@ namespace GraphDigitizer.ViewModels
 
         public RelayCommand PointsModeCommand { get; }
 
+        public RelayCommand OpenFileCommand { get; }
+
+        public event EventHandler<FileEventArgs> OpeningFile;
+
         private void ExecuteSelectModeCommand()
         {
             this.State = State.Select;
@@ -76,6 +142,58 @@ namespace GraphDigitizer.ViewModels
             this.State = State.Points;
             this.SetToolTip();
             this.CanvasCursor = Cursors.Cross;
+        }
+
+        private void ExecuteOpenFileCommand()
+        {
+            var args = new FileEventArgs();
+            this.OpeningFile?.Invoke(this, args);
+            if (string.IsNullOrWhiteSpace(args.File))
+            {
+                return;
+            }
+
+            // TODO: Move code from MainWindow.OnOpenClicked
+        }
+
+        public (double, double) GetRealCoords(double screenX, double screenY)
+        {
+            var result = GetRealCoords(new Point(screenX, screenY));
+            return (result.X, result.Y);
+        }
+
+        public Point GetRealCoords(Point screen)
+        {
+            //First: obtain the equivalent point in the X axis and in the Y axis
+            var xAxis = -((Axes.Ymax.X - Axes.Ymin.X) * (Axes.Xmax.X * Axes.Xmin.Y - Axes.Xmax.Y * Axes.Xmin.X) - (Axes.Xmax.X - Axes.Xmin.X) * (screen.X * (Axes.Ymin.Y - Axes.Ymax.Y) + screen.Y * (Axes.Ymax.X - Axes.Ymin.X))) / ((Axes.Xmax.Y - Axes.Xmin.Y) * (Axes.Ymax.X - Axes.Ymin.X) - (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y));
+            var yAxis = (screen.Y * (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y) + (Axes.Xmax.Y - Axes.Xmin.Y) * (Axes.Ymax.Y * Axes.Ymin.X - Axes.Ymax.X * Axes.Ymin.Y + screen.X * (Axes.Ymin.Y - Axes.Ymax.Y))) / ((Axes.Xmin.Y - Axes.Xmax.Y) * (Axes.Ymax.X - Axes.Ymin.X) + (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y));
+
+            var result = new Point();
+            if (Axes.XLog)
+            {
+                result.X = Math.Pow(10.0, Math.Log10(Axes.Xmin.Value) + (xAxis - Axes.Xmin.X) / (Axes.Xmax.X - Axes.Xmin.X) * (Math.Log10(Axes.Xmax.Value) - Math.Log10(Axes.Xmin.Value)));
+            }
+            else
+            {
+                result.X = Axes.Xmin.Value + (xAxis - Axes.Xmin.X) / (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Xmax.Value - Axes.Xmin.Value);
+            }
+
+            if (Axes.YLog)
+            {
+                result.Y = Math.Pow(10.0, Math.Log10(Axes.Ymin.Value) + (yAxis - Axes.Ymin.Y) / (Axes.Ymax.Y - Axes.Ymin.Y) * (Math.Log10(Axes.Ymax.Value) - Math.Log10(Axes.Ymin.Value)));
+            }
+            else
+            {
+                result.Y = Axes.Ymin.Value + (yAxis - Axes.Ymin.Y) / (Axes.Ymax.Y - Axes.Ymin.Y) * (Axes.Ymax.Value - Axes.Ymin.Value);
+            }
+
+            return result;
+        }
+
+        public void UpdateStatusCoords(double x, double y)
+        {
+            ScreenMousePosition = new Point(x, y);
+            RealMousePosition = GetRealCoords(ScreenMousePosition);
         }
 
         public void SetToolTip()
@@ -111,6 +229,26 @@ namespace GraphDigitizer.ViewModels
                 default:
                     this.StatusText = string.Empty;
                     break;
+            }
+        }
+
+        private void OnDataChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (var item in e.OldItems.OfType<ICanvasElement>())
+                {
+                    this.CanvasElements.Remove(item);
+                }
+            }
+
+            // TODO: This will add them at the top, but we want to preserve the same order as in Data
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems.OfType<ICanvasElement>())
+                {
+                    this.CanvasElements.Add(item);
+                }
             }
         }
     }
