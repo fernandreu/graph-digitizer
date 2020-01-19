@@ -162,25 +162,24 @@ namespace GraphDigitizer.Views
 
         private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
         {
-            var p = e.GetPosition(imgZoom);
-            viewModel.UpdateStatusCoords(new RelativePoint(p.X / imgZoom.ActualWidth * viewModel.TargetImage.Width, p.Y / imgZoom.ActualHeight * viewModel.TargetImage.Height));
+            var p = e.GetPosition(ZoomImage);
+            viewModel.UpdateStatusCoords(new RelativePoint(p.X / ZoomImage.ActualWidth * viewModel.TargetImage.Width, p.Y / ZoomImage.ActualHeight * viewModel.TargetImage.Height));
         }
 
         private void ZoomModeIn()
         {
-            // TODO: Hard-coded 100 / 200 (should refer to actual canvas size)
             precisionMode = true;
             MouseUtils.GetCursorPos(out var prev);
             previousPosition.X = (double)prev.X;
             previousPosition.Y = (double)prev.Y;
-            var p = PointToScreen(cnvZoom.TransformToAncestor(this).Transform(new Point(0, 0)));
-            MouseUtils.SetCursorPos((int)p.X + 100, (int)p.Y + 100);
+            var p = PointToScreen(this.ZoomCanvas.TransformToAncestor(this).Transform(new Point(0, 0)));
+            MouseUtils.SetCursorPos((int)(p.X + this.ZoomCanvas.ActualWidth / 2), (int)(p.Y + this.ZoomCanvas.ActualHeight / 2));
 
             MouseUtils.Rect r;
             r.Top = (int)p.Y;
-            r.Bottom = (int)p.Y + 200;
+            r.Bottom = (int)(p.Y + this.ZoomCanvas.ActualHeight);
             r.Left = (int)p.X;
-            r.Right = (int)p.X + 200;
+            r.Right = (int)(p.X + this.ZoomCanvas.ActualWidth);
             MouseUtils.ClipCursor(ref r);
         }
 
@@ -244,60 +243,6 @@ namespace GraphDigitizer.Views
             this.viewModel.Data.Add(p);
         }
 
-        //private void CreateXaxis()
-        //{
-        //    if (Axes.XAxis != null)
-        //    {
-        //        // TODO
-        //        //cnvGraph.Children.Remove(Axes.Xaxis);
-        //    }
-
-        //    Axes.XAxis = new Line
-        //    {
-        //        X1 = Axes.XMin.X,
-        //        Y1 = Axes.XMin.Y,
-        //        X2 = Axes.XMax.X,
-        //        Y2 = Axes.XMax.Y,
-        //        Stroke = Brushes.Red,
-        //        StrokeThickness = 2,
-        //        StrokeDashArray = new DoubleCollection
-        //        {
-        //            5.0, 5.0
-        //        },
-        //        StrokeEndLineCap = PenLineCap.Triangle
-        //    };
-
-        //    // TODO
-        //    //cnvGraph.Children.Add(Axes.Xaxis);
-        //}
-
-        //private void CreateYaxis()
-        //{
-        //    if (Axes.YAxis != null)
-        //    {
-        //        // TODO
-        //        //cnvGraph.Children.Remove(Axes.Yaxis);
-        //    }
-
-        //    Axes.YAxis = new Line
-        //    {
-        //        X1 = Axes.YMin.X,
-        //        Y1 = Axes.YMin.Y,
-        //        X2 = Axes.YMax.X,
-        //        Y2 = Axes.YMax.Y,
-        //        Stroke = Brushes.Blue,
-        //        StrokeThickness = 2,
-        //        StrokeDashArray = new DoubleCollection
-        //        {
-        //            5.0, 5.0
-        //        },
-        //        StrokeEndLineCap = PenLineCap.Round
-        //    };
-
-        //    // TODO
-        //    //cnvGraph.Children.Add(Axes.Yaxis);
-        //}
-
         private void SelectPoint(RelativePoint relative)
         {
             if (viewModel.State == State.Axes)
@@ -334,8 +279,6 @@ namespace GraphDigitizer.Views
             {
                 this.viewModel.Data[i].Index = (i + 1) % 100;
             }
-
-            dgrPoints.Items.Refresh();
         }
 
         private void PointMouseDown(object sender, MouseButtonEventArgs e)
@@ -402,8 +345,8 @@ namespace GraphDigitizer.Views
 
         private void imgZoom_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            var p = e.GetPosition(imgZoom);
-            this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(imgZoom.ActualWidth, imgZoom.ActualHeight));
+            var p = e.GetPosition(ZoomImage);
+            this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(ZoomImage.ActualWidth, ZoomImage.ActualHeight));
         }
 
         private void btnAxes_Click(object sender, RoutedEventArgs e)

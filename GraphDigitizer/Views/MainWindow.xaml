@@ -135,14 +135,22 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="200" />
             <RowDefinition Height="22" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200" />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Padding="0" Grid.ColumnSpan="2" BorderBrush="#FF555555" BorderThickness="0,0,0,1">
+        <Border 
+            Grid.Row="0" 
+            Grid.Column="0" 
+            Grid.ColumnSpan="3" 
+            Padding="0" 
+            BorderBrush="#FF555555" 
+            BorderThickness="0,0,0,1">
             <Border.Resources>
                 <Style TargetType="{x:Type Button}" BasedOn="{StaticResource ToolBarButtonStyle}">
                     <Setter Property="Height" Value="26"/>
@@ -247,8 +255,13 @@
                     ClipboardContentBinding="{Binding Transformed.Y, Converter={StaticResource ExtendedNumberFormatConverter}}"/>
             </DataGrid.Columns>
         </DataGrid>
-        <StatusBar Grid.Row="3" Grid.Column="0" ClipToBounds="False" Background="{StaticResource dgrHeaderBackground}" Grid.ColumnSpan="2" BorderBrush="#FF555555" BorderThickness="0,1,0,0"/>
-        <ScrollViewer Grid.Column="1" Grid.Row="1" x:Name="svwGraph" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Focusable="False">
+        <ScrollViewer 
+            Grid.Row="1" 
+            Grid.Column="2" 
+            Grid.RowSpan="3" 
+            VerticalScrollBarVisibility="Auto" 
+            HorizontalScrollBarVisibility="Auto" 
+            Focusable="False">
             <ItemsControl 
                 x:Name="DataCanvas"
                 MouseMove="imgGraph_MouseMove"
@@ -278,10 +291,24 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
         </ScrollViewer>
-        <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" BorderBrush="#FF45597C" BorderThickness="1,0,0,0"/>
-        <Canvas Grid.Row="2" Grid.Column="0" x:Name="cnvZoom" ClipToBounds="True" MouseMove="cnvZoom_MouseMove" Cursor="Cross">
+        <GridSplitter 
+            Grid.Row="1" 
+            Grid.Column="1" 
+            Grid.RowSpan="3" 
+            ResizeBehavior="PreviousAndNext" 
+            Width="1" 
+            Background="#FF45597C" 
+            VerticalAlignment="Stretch" 
+            ResizeDirection="Columns"/>
+        <Canvas 
+            Grid.Row="3" 
+            Grid.Column="0" 
+            x:Name="ZoomCanvas" 
+            ClipToBounds="True" 
+            MouseMove="cnvZoom_MouseMove" 
+            Cursor="Cross">
             <Image 
-                x:Name="imgZoom"
+                x:Name="ZoomImage"
                 Source="{Binding TargetImage.Source}" 
                 Width="{Binding TargetImage.Width}"
                 Height="{Binding TargetImage.Height}" 
@@ -310,27 +337,54 @@
                 </Image.LayoutTransform>
             </Image>
         </Canvas>
-        <Border Margin="188,0,0,0" Grid.Row="1" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Width="12" Background="{StaticResource dgrHeaderBackground}"/>
-        <Border Grid.ColumnSpan="2" Grid.Row="3" Height="20" VerticalAlignment="Center" HorizontalAlignment="Left" Width="300">
-            <TextBlock Text="{Binding StatusText}" Margin="5,0,0,0" TextAlignment="Left" Grid.ColumnSpan="2" Foreground="#FFB4C4CE" VerticalAlignment="Center"/>
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20">
-            <TextBlock Text="{Binding RealMousePosition.Y, Converter={StaticResource NumberFormatConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20" Margin="0,0,80,0">
-            <TextBlock Text="{Binding RealMousePosition.X, Converter={StaticResource NumberFormatConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="35" Height="20" Margin="0,0,160,0">
-            <TextBlock Text="Real:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,200,0">
-            <TextBlock Text="{Binding ScreenMousePosition.Y, StringFormat='{}{0:F2}'}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,250,0">
-            <TextBlock Text="{Binding ScreenMousePosition.X, StringFormat='{}{0:F2}'}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
-        <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="40" Height="20" Margin="0,0,300,0">
-            <TextBlock Text="Screen:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
-        </Border>
+        <Border
+            Grid.Row="1" 
+            Grid.Column="0"
+            Height="20"
+            VerticalAlignment="Top" 
+            HorizontalAlignment="Right" 
+            Width="12" 
+            Background="{StaticResource dgrHeaderBackground}"/>
+        <GridSplitter 
+            Grid.Row="2" 
+            Grid.Column="0" 
+            ResizeBehavior="PreviousAndNext" 
+            Height="1" 
+            Background="#FF45597C" 
+            HorizontalAlignment="Stretch" 
+            ResizeDirection="Rows"/>
+        <StatusBar
+            Grid.Row="4"
+            Grid.Column="0" 
+            Grid.ColumnSpan="3" 
+            ClipToBounds="False" 
+            Background="{StaticResource dgrHeaderBackground}" 
+            BorderBrush="#FF555555" 
+            BorderThickness="0,1,0,0">
+
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,8,0">
+                <TextBlock Text="{Binding RealMousePosition.Y, Converter={StaticResource NumberFormatConverter}}" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,4,0">
+                <TextBlock Text="{Binding RealMousePosition.X, Converter={StaticResource NumberFormatConverter}}" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right" Width="35" Height="20" Margin="0,0,4,0">
+                <TextBlock Text="Real:" TextAlignment="Center" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,16,0">
+                <TextBlock Text="{Binding ScreenMousePosition.Y, StringFormat='{}{0:F2}'}" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,4,0">
+                <TextBlock Text="{Binding ScreenMousePosition.X, StringFormat='{}{0:F2}'}" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right" Margin="0,0,4,0">
+                <TextBlock Text="Screen:" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            </StatusBarItem>
+
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}" Margin="8,0,0,0" TextAlignment="Left" Foreground="#FFB4C4CE" VerticalAlignment="Center"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
