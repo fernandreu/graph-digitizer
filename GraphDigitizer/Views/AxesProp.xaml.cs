@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using GraphDigitizer.Models;
+using GraphDigitizer.ViewModels.Graphics;
 
 namespace GraphDigitizer.Views
 {
@@ -17,11 +18,12 @@ namespace GraphDigitizer.Views
         {
             this.Axes = ax;
             this.InitializeComponent();
-            this.XMinBox.Text = this.Axes.Xmin.Value.ToString(CultureInfo.InvariantCulture);
-            this.XMaxBox.Text = this.Axes.Xmax.Value.ToString(CultureInfo.InvariantCulture);
+            this.XMinBox.Text = this.Axes.X.MinimumValue.ToString(CultureInfo.InvariantCulture);
+            this.XMaxBox.Text = this.Axes.X.MaximumValue.ToString(CultureInfo.InvariantCulture);
             this.XLogBox.IsChecked = this.Axes.XLog;
-            this.YMinBox.Text = this.Axes.Ymin.Value.ToString(CultureInfo.InvariantCulture);
-            this.YMaxBox.Text = this.Axes.Ymax.Value.ToString(CultureInfo.InvariantCulture);
+
+            this.YMinBox.Text = this.Axes.Y.MinimumValue.ToString(CultureInfo.InvariantCulture);
+            this.YMaxBox.Text = this.Axes.Y.MaximumValue.ToString(CultureInfo.InvariantCulture);
             this.YLogBox.IsChecked = this.Axes.YLog;
         }
 
@@ -29,22 +31,22 @@ namespace GraphDigitizer.Views
         {
             if (double.TryParse(this.XMinBox.Text, out var val))
             {
-                this.Axes.Xmin.Value = val;
+                this.Axes.X.MinimumValue = val;
             }
 
             if (double.TryParse(this.XMaxBox.Text, out val))
             {
-                this.Axes.Xmax.Value = val;
+                this.Axes.X.MaximumValue = val;
             }
 
             if (double.TryParse(this.YMinBox.Text, out val))
             {
-                this.Axes.Ymin.Value = val;
+                this.Axes.Y.MinimumValue = val;
             }
 
             if (double.TryParse(this.YMaxBox.Text, out val))
             {
-                this.Axes.Ymax.Value = val;
+                this.Axes.Y.MaximumValue = val;
             }
 
             this.Axes.XLog = this.XLogBox.IsChecked.Value;

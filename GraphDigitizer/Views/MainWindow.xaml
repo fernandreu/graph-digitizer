@@ -5,6 +5,7 @@
         xmlns:converters="clr-namespace:GraphDigitizer.Converters"
         xmlns:viewModels="clr-namespace:GraphDigitizer.ViewModels"
         xmlns:markup="clr-namespace:GraphDigitizer.Markup"
+        xmlns:graphics="clr-namespace:GraphDigitizer.ViewModels.Graphics"
         mc:Ignorable="d" x:Class="GraphDigitizer.Views.MainWindow"
         Title="Graph Digitizer"
         Height="733" 
@@ -19,8 +20,11 @@
         Background="#FFC6D3D6"
         x:Name="Window">
     <Window.Resources>
-        <converters:CoordinateConverter x:Key="CoordinateConverter"/>
-        <converters:PositionConverter x:Key="PositionConverter"/>
+        <converters:NumberFormatConverter x:Key="NumberFormatConverter"/>
+        <converters:NumberFormatConverter x:Key="ExtendedNumberFormatConverter" FloatDecimals="12" ExponentialDecimals="6"/>
+        <converters:ZoomPositionConverter x:Key="ZoomPositionConverter"/>
+        <converters:MainPositionConverter x:Key="MainPositionConverter"/>
+        <converters:MainSizeConverter x:Key="MainSizeConverter"/>
 
         <converters:FactorConverter x:Key="FactorConverter"/>
 
@@ -28,31 +32,104 @@
             <Image 
                 d:DataContext="{d:DesignInstance viewModels:TargetImage}"
                 Tag="{Binding}"
-                Source="{Binding Source}" 
-                Width="{Binding DataContext.TargetImage.Width, ElementName=Window}"
-                Height="{Binding DataContext.TargetImage.Height, ElementName=Window}"/>
+                Source="{Binding Source}">
+                <Image.Width>
+                    <MultiBinding Converter="{StaticResource MainSizeConverter}">
+                        <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Image.Width>
+                <Image.Height>
+                    <MultiBinding Converter="{StaticResource MainSizeConverter}">
+                        <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Image.Height>
+            </Image>
         </DataTemplate>
 
         <DataTemplate x:Key="PointDataTemplate">
             <!--TODO: Label indices were previously capped at 99 (using % 100)-->
             <Label
-                d:DataContext="{d:DesignInstance viewModels:DataPoint}"
+                d:DataContext="{d:DesignInstance graphics:DataPoint}"
                 Tag="{Binding}"
                 Content="{Binding Index}"
                 MouseDown="PointMouseDown"
                 Style="{StaticResource PointStyle}">
                 <Label.RenderTransform>
-                    <TranslateTransform
-                        X="{Binding RelativeX}" 
-                        Y="{Binding RelativeY}"/>
+                    <TranslateTransform>
+                        <TranslateTransform.X>
+                            <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                                <Binding Path="Relative.X"/>
+                                <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                                <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                            </MultiBinding>
+                        </TranslateTransform.X>
+                        <TranslateTransform.Y>
+                            <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                                <Binding Path="Relative.Y"/>
+                                <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                                <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                            </MultiBinding>
+                        </TranslateTransform.Y>
+                    </TranslateTransform>
                 </Label.RenderTransform>
             </Label>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AxesDataTemplate">
+            <Line
+                d:DataContext="{d:DesignInstance graphics:Axis}"
+                MouseDown="PointMouseDown"
+                StrokeThickness="2"
+                StrokeDashArray="5,5"
+                StrokeEndLineCap="Round">
+                <Line.Style>
+                    <Style TargetType="{x:Type Line}">
+                        <Setter Property="Stroke" Value="Blue"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsXAxis}" Value="False">
+                                <Setter Property="Stroke" Value="Red"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Line.Style>
+                <Line.X1>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Minimum.X"/>
+                        <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Line.X1>
+                <Line.X2>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Maximum.X"/>
+                        <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Line.X2>
+                <Line.Y1>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Minimum.Y"/>
+                        <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Line.Y1>
+                <Line.Y2>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Maximum.Y"/>
+                        <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Line.Y2>
+            </Line>
         </DataTemplate>
 
         <markup:CanvasSelector 
             x:Key="CanvasSelector"
             ImageTemplate="{StaticResource ImageDataTemplate}"
-            PointTemplate="{StaticResource PointDataTemplate}"/>
+            PointTemplate="{StaticResource PointDataTemplate}"
+            AxisTemplate="{StaticResource AxesDataTemplate}"/>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -129,7 +206,29 @@
                 </Button>
             </StackPanel>
         </Border>
-        <DataGrid x:Name="dgrPoints" Grid.Row="1" Block.TextAlignment="Center" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible" ColumnWidth="95" CanUserSortColumns="False" CanUserResizeRows="False" CanUserResizeColumns="False" CanUserReorderColumns="False" FontSize="11" SelectionChanged="OnTableSelectionChanged" IsReadOnly="True" Background="#FFE9EFF5" HeadersVisibility="Column" AutoGenerateColumns="False" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" BorderBrush="#FF44587C" BorderThickness="0,0,0,1">
+        <DataGrid 
+            x:Name="dgrPoints" 
+            Grid.Row="1" 
+            Grid.Column="0"
+            ItemsSource="{Binding Data}"
+            Block.TextAlignment="Center" 
+            HorizontalScrollBarVisibility="Disabled" 
+            VerticalScrollBarVisibility="Visible" 
+            ColumnWidth="95" 
+            CanUserSortColumns="False" 
+            CanUserResizeRows="False" 
+            CanUserResizeColumns="False" 
+            CanUserReorderColumns="False" 
+            FontSize="11" 
+            SelectionChanged="OnTableSelectionChanged" 
+            IsReadOnly="True" 
+            Background="#FFE9EFF5" 
+            HeadersVisibility="Column" 
+            AutoGenerateColumns="False" 
+            VerticalContentAlignment="Center" 
+            HorizontalContentAlignment="Center" 
+            BorderBrush="#FF44587C" 
+            BorderThickness="0,0,0,1">
             <DataGrid.ContextMenu>
                 <ContextMenu>
                     <MenuItem Command="ApplicationCommands.SelectAll" Header="Select All" />
@@ -138,8 +237,14 @@
                 </ContextMenu>
             </DataGrid.ContextMenu>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="X Value" Binding="{Binding Xform}" ClipboardContentBinding="{Binding X, StringFormat=F10}"/>
-                <DataGridTextColumn Header="Y Value" Binding="{Binding Yform}" ClipboardContentBinding="{Binding Y, StringFormat=F10}"/>
+                <DataGridTextColumn 
+                    Header="X Value" 
+                    Binding="{Binding Transformed.X, Converter={StaticResource NumberFormatConverter}}"
+                    ClipboardContentBinding="{Binding Transformed.X, Converter={StaticResource ExtendedNumberFormatConverter}}"/>
+                <DataGridTextColumn 
+                    Header="Y Value" 
+                    Binding="{Binding Transformed.Y, Converter={StaticResource NumberFormatConverter}}"
+                    ClipboardContentBinding="{Binding Transformed.Y, Converter={StaticResource ExtendedNumberFormatConverter}}"/>
             </DataGrid.Columns>
         </DataGrid>
         <StatusBar Grid.Row="3" Grid.Column="0" ClipToBounds="False" Background="{StaticResource dgrHeaderBackground}" Grid.ColumnSpan="2" BorderBrush="#FF555555" BorderThickness="0,1,0,0"/>
@@ -148,22 +253,27 @@
                 x:Name="DataCanvas"
                 MouseMove="imgGraph_MouseMove"
                 MouseDown="imgGraph_MouseDown" 
-                Width="{Binding TargetImage.Width}"
-                Height="{Binding TargetImage.Height}"
+                MouseEnter="MouseEnterEventHandler"
+                MouseLeave="MouseLeaveEventHandler"
                 Cursor="{Binding CanvasCursor}" 
                 UseLayoutRounding="True"
                 ItemsSource="{Binding CanvasElements}"
                 ItemTemplateSelector="{StaticResource CanvasSelector}">
+                <ItemsControl.Width>
+                    <MultiBinding Converter="{StaticResource MainSizeConverter}">
+                        <Binding Path="TargetImage.Width"/>
+                        <Binding Path="CanvasFactor" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </ItemsControl.Width>
+                <ItemsControl.Height>
+                    <MultiBinding Converter="{StaticResource MainSizeConverter}">
+                        <Binding Path="TargetImage.Height"/>
+                        <Binding Path="CanvasFactor" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </ItemsControl.Height>
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <Canvas 
-                            ClipToBounds="True">
-                            <Canvas.LayoutTransform>
-                                <ScaleTransform 
-                                    ScaleX="{Binding CanvasFactor, Converter={StaticResource FactorConverter}}"
-                                    ScaleY="{Binding CanvasFactor, Converter={StaticResource FactorConverter}}"/>
-                            </Canvas.LayoutTransform>
-                        </Canvas>
+                        <Canvas ClipToBounds="True"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
@@ -178,7 +288,7 @@
                 Stretch="Fill" 
                 MouseDown="imgZoom_MouseDown">
                 <Canvas.Left>
-                    <MultiBinding Converter="{StaticResource PositionConverter}">
+                    <MultiBinding Converter="{StaticResource ZoomPositionConverter}">
                         <Binding Path="MousePosition.X"/>
                         <Binding Path="TargetImage.Width"/>
                         <Binding Path="ActualWidth" RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type Canvas}}"/>
@@ -186,7 +296,7 @@
                     </MultiBinding>
                 </Canvas.Left>
                 <Canvas.Top>
-                    <MultiBinding Converter="{StaticResource PositionConverter}">
+                    <MultiBinding Converter="{StaticResource ZoomPositionConverter}">
                         <Binding Path="MousePosition.Y"/>
                         <Binding Path="TargetImage.Height"/>
                         <Binding Path="ActualHeight" RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type Canvas}}"/>
@@ -205,10 +315,10 @@
             <TextBlock Text="{Binding StatusText}" Margin="5,0,0,0" TextAlignment="Left" Grid.ColumnSpan="2" Foreground="#FFB4C4CE" VerticalAlignment="Center"/>
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20">
-            <TextBlock Text="{Binding RealMousePosition.Y, Converter={StaticResource CoordinateConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding RealMousePosition.Y, Converter={StaticResource NumberFormatConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="80" Height="20" Margin="0,0,80,0">
-            <TextBlock Text="{Binding RealMousePosition.X, Converter={StaticResource CoordinateConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
+            <TextBlock Text="{Binding RealMousePosition.X, Converter={StaticResource NumberFormatConverter}}" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />
         </Border>
         <Border Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Width="35" Height="20" Margin="0,0,160,0">
             <TextBlock Text="Real:" TextAlignment="Center" VerticalAlignment="Center" Foreground="#FFB4C4CE" />

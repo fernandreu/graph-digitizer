@@ -1,8 +1,8 @@
 ﻿using GalaSoft.MvvmLight;
 
-namespace GraphDigitizer.ViewModels
+namespace GraphDigitizer.ViewModels.Graphics
 {
-    public class Coord : ViewModelBase
+    public abstract class PointBase : ViewModelBase
     {
         private double x;
 
@@ -18,14 +18,6 @@ namespace GraphDigitizer.ViewModels
         {
             get => this.y;
             set => this.Set(ref this.y, value);
-        }
-
-        private double value;
-
-        public double Value
-        {
-            get => this.value;
-            set => this.Set(ref this.value, value);
         }
     }
 }

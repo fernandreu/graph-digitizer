@@ -7,9 +7,11 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
+using GraphDigitizer.Converters;
 using GraphDigitizer.Events;
 using GraphDigitizer.Interfaces;
 using GraphDigitizer.Models;
+using GraphDigitizer.ViewModels.Graphics;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -23,6 +25,7 @@ namespace GraphDigitizer.ViewModels
             this.ClipboardLoadCommand = new RelayCommand(this.OpenFromClipboard);
 
             this.Data.CollectionChanged += this.OnDataChanged;
+            this.Axes = new Axes();
         }
 
         public RelayCommand SelectModeCommand { get; }
@@ -62,18 +65,38 @@ namespace GraphDigitizer.ViewModels
 
         public ObservableCollection<ICanvasElement> CanvasElements { get; } = new ObservableCollection<ICanvasElement>();
 
-        private Axes axes = new Axes();
+        private Axes axes;
 
         public Axes Axes
         {
             get => this.axes;
-            set => this.Set(ref this.axes, value);
+            set
+            {
+                var previous = this.axes;
+                if (!this.Set(ref this.axes, value))
+                {
+                    return;
+                }
+
+                if (previous != null)
+                {
+                    this.CanvasElements.Remove(previous.X);
+                    this.CanvasElements.Remove(previous.Y);
+                }
+
+                if (value != null)
+                {
+                    var offset = this.CanvasElements.Count > 0 ? 1 : 0;
+                    this.CanvasElements.Insert(offset, value.X);
+                    this.CanvasElements.Insert(offset + 1, value.Y);
+                }
+            }
         }
 
-        private Point mousePosition;
+        private RelativePoint mousePosition;
 
         // The position of the mouse relative to the image's size, from 0 to 1
-        public Point MousePosition
+        public RelativePoint MousePosition
         {
             get => this.mousePosition;
             set
@@ -83,7 +106,7 @@ namespace GraphDigitizer.ViewModels
                     return;
                 }
 
-                this.UpdateStatusCoords(mousePosition.X * this.TargetImage.Width, mousePosition.Y * this.TargetImage.Height);
+                this.UpdateStatusCoords();
             }
         }
 
@@ -122,17 +145,17 @@ namespace GraphDigitizer.ViewModels
             set => this.Set(ref this.statusText, value);
         }
 
-        private Point realMousePosition;
+        private TransformedPoint realMousePosition;
 
-        public Point RealMousePosition
+        public TransformedPoint RealMousePosition
         {
             get => this.realMousePosition;
             set => this.Set(ref this.realMousePosition, value);
         }
 
-        private Point screenMousePosition;
+        private AbsolutePoint screenMousePosition;
 
-        public Point ScreenMousePosition
+        public AbsolutePoint ScreenMousePosition
         {
             get => this.screenMousePosition;
             set => this.Set(ref this.screenMousePosition, value);
@@ -147,6 +170,14 @@ namespace GraphDigitizer.ViewModels
         {
             get => this.canvasCursor;
             set => this.Set(ref this.canvasCursor, value);
+        }
+
+        private bool isMouseOverCanvas;
+
+        public bool IsMouseOverCanvas
+        {
+            get => this.isMouseOverCanvas;
+            set => this.Set(ref this.isMouseOverCanvas, value);
         }
 
         public event EventHandler<FileEventArgs> OpeningFile;
@@ -211,62 +242,54 @@ namespace GraphDigitizer.ViewModels
             this.Axes.Status = 0;
 
             this.Data.Clear();
-            if (this.Axes.Xaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Xaxis);
-            }
-
-            if (this.Axes.Yaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Yaxis);
-            }
-
-            Axes.Xmin.X = Axes.Xmin.Y = Axes.Xmax.X = Axes.Xmax.Y = Axes.Ymin.X = Axes.Ymin.Y = Axes.Ymax.X = Axes.Ymax.Y = double.NaN;
+            Axes.X.Minimum.X = Axes.X.Minimum.Y = Axes.X.Maximum.X = Axes.X.Maximum.Y = Axes.Y.Minimum.X = Axes.Y.Minimum.Y = Axes.Y.Maximum.X = Axes.Y.Maximum.Y = double.NaN;
 
             SetToolTip();
             this.CanvasCursor = Cursors.Cross;
         }
 
-        public (double, double) GetRealCoords(double screenX, double screenY)
+        public TransformedPoint GetRealCoords(AbsolutePoint absolute)
         {
-            var result = GetRealCoords(new Point(screenX, screenY));
-            return (result.X, result.Y);
+            return this.GetRealCoords(absolute.ToRelative(this.TargetImage.Width, this.TargetImage.Height, this.CanvasFactor));
         }
 
-        public Point GetRealCoords(Point screen)
+        public TransformedPoint GetRealCoords(RelativePoint relative)
         {
             //First: obtain the equivalent point in the X axis and in the Y axis
-            var xAxis = -((Axes.Ymax.X - Axes.Ymin.X) * (Axes.Xmax.X * Axes.Xmin.Y - Axes.Xmax.Y * Axes.Xmin.X) - (Axes.Xmax.X - Axes.Xmin.X) * (screen.X * (Axes.Ymin.Y - Axes.Ymax.Y) + screen.Y * (Axes.Ymax.X - Axes.Ymin.X))) / ((Axes.Xmax.Y - Axes.Xmin.Y) * (Axes.Ymax.X - Axes.Ymin.X) - (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y));
-            var yAxis = (screen.Y * (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y) + (Axes.Xmax.Y - Axes.Xmin.Y) * (Axes.Ymax.Y * Axes.Ymin.X - Axes.Ymax.X * Axes.Ymin.Y + screen.X * (Axes.Ymin.Y - Axes.Ymax.Y))) / ((Axes.Xmin.Y - Axes.Xmax.Y) * (Axes.Ymax.X - Axes.Ymin.X) + (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Ymax.Y - Axes.Ymin.Y));
+            var xAxis = -((Axes.Y.Maximum.X - Axes.Y.Minimum.X) * (Axes.X.Maximum.X * Axes.X.Minimum.Y - Axes.X.Maximum.Y * Axes.X.Minimum.X) - (Axes.X.Maximum.X - Axes.X.Minimum.X) * (relative.X * (Axes.Y.Minimum.Y - Axes.Y.Maximum.Y) + relative.Y * (Axes.Y.Maximum.X - Axes.Y.Minimum.X))) / ((Axes.X.Maximum.Y - Axes.X.Minimum.Y) * (Axes.Y.Maximum.X - Axes.Y.Minimum.X) - (Axes.X.Maximum.X - Axes.X.Minimum.X) * (Axes.Y.Maximum.Y - Axes.Y.Minimum.Y));
+            var yAxis = (relative.Y * (Axes.X.Maximum.X - Axes.X.Minimum.X) * (Axes.Y.Maximum.Y - Axes.Y.Minimum.Y) + (Axes.X.Maximum.Y - Axes.X.Minimum.Y) * (Axes.Y.Maximum.Y * Axes.Y.Minimum.X - Axes.Y.Maximum.X * Axes.Y.Minimum.Y + relative.X * (Axes.Y.Minimum.Y - Axes.Y.Maximum.Y))) / ((Axes.X.Minimum.Y - Axes.X.Maximum.Y) * (Axes.Y.Maximum.X - Axes.Y.Minimum.X) + (Axes.X.Maximum.X - Axes.X.Minimum.X) * (Axes.Y.Maximum.Y - Axes.Y.Minimum.Y));
 
-            var result = new Point();
+            var result = new TransformedPoint();
             if (Axes.XLog)
             {
-                result.X = Math.Pow(10.0, Math.Log10(Axes.Xmin.Value) + (xAxis - Axes.Xmin.X) / (Axes.Xmax.X - Axes.Xmin.X) * (Math.Log10(Axes.Xmax.Value) - Math.Log10(Axes.Xmin.Value)));
+                result.X = Math.Pow(10.0, Math.Log10(Axes.X.MinimumValue) + (xAxis - Axes.X.Minimum.X) / (Axes.X.Maximum.X - Axes.X.Minimum.X) * (Math.Log10(Axes.X.MaximumValue) - Math.Log10(Axes.X.MinimumValue)));
             }
             else
             {
-                result.X = Axes.Xmin.Value + (xAxis - Axes.Xmin.X) / (Axes.Xmax.X - Axes.Xmin.X) * (Axes.Xmax.Value - Axes.Xmin.Value);
+                result.X = Axes.X.MinimumValue + (xAxis - Axes.X.Minimum.X) / (Axes.X.Maximum.X - Axes.X.Minimum.X) * (Axes.X.MaximumValue - Axes.X.MinimumValue);
             }
 
             if (Axes.YLog)
             {
-                result.Y = Math.Pow(10.0, Math.Log10(Axes.Ymin.Value) + (yAxis - Axes.Ymin.Y) / (Axes.Ymax.Y - Axes.Ymin.Y) * (Math.Log10(Axes.Ymax.Value) - Math.Log10(Axes.Ymin.Value)));
+                result.Y = Math.Pow(10.0, Math.Log10(Axes.Y.MinimumValue) + (yAxis - Axes.Y.Minimum.Y) / (Axes.Y.Maximum.Y - Axes.Y.Minimum.Y) * (Math.Log10(Axes.Y.MaximumValue) - Math.Log10(Axes.Y.MinimumValue)));
             }
             else
             {
-                result.Y = Axes.Ymin.Value + (yAxis - Axes.Ymin.Y) / (Axes.Ymax.Y - Axes.Ymin.Y) * (Axes.Ymax.Value - Axes.Ymin.Value);
+                result.Y = Axes.Y.MinimumValue + (yAxis - Axes.Y.Minimum.Y) / (Axes.Y.Maximum.Y - Axes.Y.Minimum.Y) * (Axes.Y.MaximumValue - Axes.Y.MinimumValue);
             }
 
             return result;
         }
 
-        public void UpdateStatusCoords(double x, double y)
+        public void UpdateStatusCoords(RelativePoint point = null)
         {
-            ScreenMousePosition = new Point(x, y);
-            RealMousePosition = GetRealCoords(ScreenMousePosition);
+            if (point == null)
+            {
+                point = this.MousePosition;
+            }
+
+            this.ScreenMousePosition = point.ToAbsolute(this.TargetImage.Width, this.TargetImage.Height, this.CanvasFactor);
+            this.RealMousePosition = GetRealCoords(ScreenMousePosition);
         }
 
         public void SetToolTip()

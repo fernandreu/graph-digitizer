@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using GraphDigitizer.Converters;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels;
+using GraphDigitizer.ViewModels.Graphics;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
@@ -22,9 +22,8 @@ namespace GraphDigitizer.Views
         private readonly MainWindowViewModel viewModel;
 
         private bool precisionMode = false;
+        
         private Point previousPosition;
-
-        private readonly List<DataPoint> data = new List<DataPoint>();
 
         //Selection rectangle
         private bool selecting = false; //Selection rectangle off
@@ -40,7 +39,6 @@ namespace GraphDigitizer.Views
 
             viewModel = (MainWindowViewModel) DataContext;
 
-            dgrPoints.ItemsSource = data;
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
                 this.viewModel.OpenFile(Properties.Settings.Default.LastFile);
@@ -84,25 +82,22 @@ namespace GraphDigitizer.Views
                     Source = bmp,
                 };
 
-                Axes.Xmin.X = br.ReadDouble(); Axes.Xmin.Y = br.ReadDouble(); Axes.Xmin.Value = br.ReadDouble();
-                Axes.Xmax.X = br.ReadDouble(); Axes.Xmax.Y = br.ReadDouble(); Axes.Xmax.Value = br.ReadDouble();
+                Axes.X.Minimum.X = br.ReadDouble(); Axes.X.Minimum.Y = br.ReadDouble(); Axes.X.MinimumValue = br.ReadDouble();
+                Axes.X.Maximum.X = br.ReadDouble(); Axes.X.Maximum.Y = br.ReadDouble(); Axes.X.MaximumValue = br.ReadDouble();
                 Axes.XLog = br.ReadBoolean();
-                CreateXaxis();
 
-                Axes.Ymin.X = br.ReadDouble(); Axes.Ymin.Y = br.ReadDouble(); Axes.Ymin.Value = br.ReadDouble();
-                Axes.Ymax.X = br.ReadDouble(); Axes.Ymax.Y = br.ReadDouble(); Axes.Ymax.Value = br.ReadDouble();
+                Axes.Y.Minimum.X = br.ReadDouble(); Axes.Y.Minimum.Y = br.ReadDouble(); Axes.Y.MinimumValue = br.ReadDouble();
+                Axes.Y.Maximum.X = br.ReadDouble(); Axes.Y.Maximum.Y = br.ReadDouble(); Axes.Y.MaximumValue = br.ReadDouble();
                 Axes.YLog = br.ReadBoolean();
-                CreateYaxis();
 
                 DeletePoints();
                 var total = br.ReadInt32();
-                data.Capacity = total;
                 for (var i = 0; i < total; i++)
                 {
-                    this.data.Add(new DataPoint(br.ReadDouble(), br.ReadDouble(), br.ReadDouble(), br.ReadDouble(), i + 1));
+                    var transformed = new TransformedPoint(br.ReadDouble(), br.ReadDouble());
+                    var relative = new RelativePoint(br.ReadDouble(), br.ReadDouble());
+                    this.viewModel.Data.Add(new DataPoint(transformed, relative, i + 1));
                 }
-
-                dgrPoints.Items.Refresh();
 
                 viewModel.State = State.Points;
                 SetToolTip();
@@ -135,42 +130,40 @@ namespace GraphDigitizer.Views
                 }
             }
 
-            viewModel.MousePosition = new Point(p.X / viewModel.TargetImage.Width, p.Y / viewModel.TargetImage.Height);
+            viewModel.MousePosition = new RelativePoint(p.X / viewModel.TargetImage.Width, p.Y / viewModel.TargetImage.Height);
 
             if (viewModel.State == State.Axes)
             {
                 if (Axes.Status == 1)
                 {
-                    Axes.Xaxis.X2 = p.X;
-                    Axes.Xaxis.Y2 = p.Y;
+                    Axes.X.Maximum = viewModel.MousePosition;
                 }
                 else if (Axes.Status == 3)
                 {
-                    Axes.Yaxis.X2 = p.X;
-                    Axes.Yaxis.Y2 = p.Y;
+                    Axes.Y.Maximum = viewModel.MousePosition;
                 }
             }
         }
 
-        public static string FormatNum(double num)
+        public static string FormatNum(double num, int exponentialDecimals = 4, int floatDecimals = 8)
         {
             if (double.IsNaN(num)) return "N/A";
             if (Math.Abs(num) < 1e-10) return "0";
 
             var aux = Math.Abs(num);
-            if (aux > 999999.0 || aux < 0.00001)
+            if (aux > Math.Pow(10, exponentialDecimals + 2) - 1 || aux < Math.Pow(10, -exponentialDecimals - 1))
             {
-                return num.ToString("E4");
+                return num.ToString($"E{exponentialDecimals}");
             }
 
             var dig = (int)(Math.Log10(aux) + Math.Sign(Math.Log10(aux)));
-            return num.ToString(dig >= 0 ? $"F{8 - dig}" : "F8");
+            return num.ToString(dig >= 0 ? $"F{floatDecimals - dig}" : $"F{floatDecimals}");
         }
 
         private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
         {
             var p = e.GetPosition(imgZoom);
-            viewModel.UpdateStatusCoords(p.X / imgZoom.ActualWidth * viewModel.TargetImage.Width, p.Y / imgZoom.ActualHeight * viewModel.TargetImage.Height);
+            viewModel.UpdateStatusCoords(new RelativePoint(p.X / imgZoom.ActualWidth * viewModel.TargetImage.Width, p.Y / imgZoom.ActualHeight * viewModel.TargetImage.Height));
         }
 
         private void ZoomModeIn()
@@ -193,7 +186,7 @@ namespace GraphDigitizer.Views
 
         private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && !precisionMode)
+            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && !precisionMode && this.viewModel.IsMouseOverCanvas)
             {
                 ZoomModeIn();
                 return;
@@ -244,98 +237,84 @@ namespace GraphDigitizer.Views
                 ZoomModeOut();
         }
 
-        private void AddPoint(double x, double y)
+        private void AddPoint(RelativePoint position)
         {
-            var (xPoint, yPoint) = this.viewModel.GetRealCoords(x, y);
-            var p = new DataPoint(xPoint, yPoint, x, y, this.data.Count + 1);
-            this.data.Add(p);
+            var transformed = this.viewModel.GetRealCoords(position);
+            var p = new DataPoint(transformed, position, this.viewModel.Data.Count + 1);
             this.viewModel.Data.Add(p);
-            dgrPoints.Items.Refresh();
         }
 
-        private void CreateXaxis()
-        {
-            if (Axes.Xaxis != null)
-            {
-                // TODO
-                //cnvGraph.Children.Remove(Axes.Xaxis);
-            }
+        //private void CreateXaxis()
+        //{
+        //    if (Axes.XAxis != null)
+        //    {
+        //        // TODO
+        //        //cnvGraph.Children.Remove(Axes.Xaxis);
+        //    }
 
-            Axes.Xaxis = new Line
-            {
-                X1 = Axes.Xmin.X,
-                Y1 = Axes.Xmin.Y,
-                X2 = Axes.Xmax.X,
-                Y2 = Axes.Xmax.Y,
-                Stroke = Brushes.Red,
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection
-                {
-                    5.0, 5.0
-                },
-                StrokeEndLineCap = PenLineCap.Triangle
-            };
+        //    Axes.XAxis = new Line
+        //    {
+        //        X1 = Axes.XMin.X,
+        //        Y1 = Axes.XMin.Y,
+        //        X2 = Axes.XMax.X,
+        //        Y2 = Axes.XMax.Y,
+        //        Stroke = Brushes.Red,
+        //        StrokeThickness = 2,
+        //        StrokeDashArray = new DoubleCollection
+        //        {
+        //            5.0, 5.0
+        //        },
+        //        StrokeEndLineCap = PenLineCap.Triangle
+        //    };
 
-            // TODO
-            //cnvGraph.Children.Add(Axes.Xaxis);
-        }
+        //    // TODO
+        //    //cnvGraph.Children.Add(Axes.Xaxis);
+        //}
 
-        private void CreateYaxis()
-        {
-            if (Axes.Yaxis != null)
-            {
-                // TODO
-                //cnvGraph.Children.Remove(Axes.Yaxis);
-            }
+        //private void CreateYaxis()
+        //{
+        //    if (Axes.YAxis != null)
+        //    {
+        //        // TODO
+        //        //cnvGraph.Children.Remove(Axes.Yaxis);
+        //    }
 
-            Axes.Yaxis = new Line
-            {
-                X1 = Axes.Ymin.X,
-                Y1 = Axes.Ymin.Y,
-                X2 = Axes.Ymax.X,
-                Y2 = Axes.Ymax.Y,
-                Stroke = Brushes.Blue,
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection
-                {
-                    5.0, 5.0
-                },
-                StrokeEndLineCap = PenLineCap.Round
-            };
+        //    Axes.YAxis = new Line
+        //    {
+        //        X1 = Axes.YMin.X,
+        //        Y1 = Axes.YMin.Y,
+        //        X2 = Axes.YMax.X,
+        //        Y2 = Axes.YMax.Y,
+        //        Stroke = Brushes.Blue,
+        //        StrokeThickness = 2,
+        //        StrokeDashArray = new DoubleCollection
+        //        {
+        //            5.0, 5.0
+        //        },
+        //        StrokeEndLineCap = PenLineCap.Round
+        //    };
 
-            // TODO
-            //cnvGraph.Children.Add(Axes.Yaxis);
-        }
+        //    // TODO
+        //    //cnvGraph.Children.Add(Axes.Yaxis);
+        //}
 
-        private void SelectPoint(double X, double Y)
+        private void SelectPoint(RelativePoint relative)
         {
             if (viewModel.State == State.Axes)
             {
                 switch (Axes.Status)
                 {
                     case 0: //Xmin
-                        Axes.Xmin.X = X;
-                        Axes.Xmin.Y = Y;
-                        Axes.Xmax.X = X;
-                        Axes.Xmax.Y = Y;
-                        CreateXaxis();
+                        Axes.X.Minimum = relative;
                         break;
                     case 1:
-                        Axes.Xmax.X = X;
-                        Axes.Xmax.Y = Y;
-                        CreateXaxis();
+                        Axes.X.Maximum = relative;
                         break;
                     case 2:
-                        Axes.Ymin.X = X;
-                        Axes.Ymin.Y = Y;
-                        Axes.Ymax.X = X;
-                        Axes.Ymax.Y = Y;
-                        CreateYaxis();
+                        Axes.Y.Minimum = relative;
                         break;
                     case 3:
-                        Axes.Ymax.X = X;
-                        Axes.Ymax.Y = Y;
-                        CreateYaxis();
+                        Axes.Y.Maximum = relative;
                         break;
                 }
                 Axes.Status++;
@@ -344,7 +323,7 @@ namespace GraphDigitizer.Views
             }
             else if (viewModel.State == State.Points)
             {
-                AddPoint(X, Y);
+                AddPoint(relative);
             }
             SetToolTip();
         }
@@ -353,7 +332,7 @@ namespace GraphDigitizer.Views
         {
             for (var i = 0; i < this.viewModel.Data.Count; i++)
             {
-                data[i].Index = (i + 1) % 100;
+                this.viewModel.Data[i].Index = (i + 1) % 100;
             }
 
             dgrPoints.Items.Refresh();
@@ -385,7 +364,7 @@ namespace GraphDigitizer.Views
                     DeleteSelection(sender, e);
                 else
                 {
-                    data.Remove((DataPoint)((Label)sender).Tag);
+                    this.viewModel.Data.Remove((DataPoint)((Label)sender).Tag);
                     UpdateData();
                 }
             }
@@ -395,7 +374,7 @@ namespace GraphDigitizer.Views
         {
             foreach (DataPoint dp in dgrPoints.SelectedItems)
             {
-                data.Remove(dp);
+                this.viewModel.Data.Remove(dp);
             }
 
             UpdateData();
@@ -418,13 +397,13 @@ namespace GraphDigitizer.Views
                 //Canvas.SetTop(this.selRect, this.selFirstPos.Y);
             }
             else
-                this.SelectPoint(p.X, p.Y);
+                this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(this.DataCanvas.ActualWidth, this.DataCanvas.ActualHeight));
         }
 
         private void imgZoom_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(imgZoom);
-            SelectPoint(p.X / Zoom, p.Y / Zoom);
+            this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(imgZoom.ActualWidth, imgZoom.ActualHeight));
         }
 
         private void btnAxes_Click(object sender, RoutedEventArgs e)
@@ -504,13 +483,7 @@ namespace GraphDigitizer.Views
 
         private void OnCopyClicked(object sender, RoutedEventArgs e)
         {
-            var res = string.Empty;
-            for (var i = 0; i < data.Count; i++)
-            {
-                res += data[i].X + "\t" + data[i].Y;
-                if (i != data.Count) res += Environment.NewLine;
-            }
-
+            var res = string.Join(Environment.NewLine, this.viewModel.Data.Select(x => $"{x.Transformed.X}\t{x.Transformed.Y}"));
             Clipboard.SetText(res);
         }
 
@@ -584,9 +557,9 @@ namespace GraphDigitizer.Views
                     {
                         sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
                         sw.WriteLine(new string('-', 45));
-                        foreach (var p in this.data)
+                        foreach (var p in this.viewModel.Data)
                         {
-                            sw.WriteLine("{0,-22}{1,-22}", p.X, p.Y);
+                            sw.WriteLine("{0,-22}{1,-22}", p.Transformed.X, p.Transformed.Y);
                         }
 
                         sw.Close();
@@ -597,9 +570,9 @@ namespace GraphDigitizer.Views
                     {
                         var sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
                         sw.WriteLine("X Value" + sep + "Y Value");
-                        foreach (var p in this.data)
+                        foreach (var p in this.viewModel.Data)
                         {
-                            sw.WriteLine(p.X + sep + p.Y);
+                            sw.WriteLine(p.Transformed.X + sep + p.Transformed.Y);
                         }
 
                         sw.Close();
@@ -630,23 +603,23 @@ namespace GraphDigitizer.Views
                         bw.Write(this.Zoom);
 
                         //X axis
-                        bw.Write(Axes.Xmin.X); bw.Write(Axes.Xmin.Y); bw.Write(Axes.Xmin.Value);
-                        bw.Write(Axes.Xmax.X); bw.Write(Axes.Xmax.Y); bw.Write(Axes.Xmax.Value);
+                        bw.Write(Axes.X.Minimum.X); bw.Write(Axes.X.Minimum.Y); bw.Write(Axes.X.MinimumValue);
+                        bw.Write(Axes.X.Maximum.X); bw.Write(Axes.X.Maximum.Y); bw.Write(Axes.X.MaximumValue);
                         bw.Write(Axes.XLog);
 
                         //Y axis
-                        bw.Write(Axes.Ymin.X); bw.Write(Axes.Ymin.Y); bw.Write(Axes.Ymin.Value);
-                        bw.Write(Axes.Ymax.X); bw.Write(Axes.Ymax.Y); bw.Write(Axes.Ymax.Value);
+                        bw.Write(Axes.Y.Minimum.X); bw.Write(Axes.Y.Minimum.Y); bw.Write(Axes.Y.MinimumValue);
+                        bw.Write(Axes.Y.Maximum.X); bw.Write(Axes.Y.Maximum.Y); bw.Write(Axes.Y.MaximumValue);
                         bw.Write(Axes.YLog);
 
                         //Points
-                        bw.Write(data.Count);
-                        foreach (var p in data)
+                        bw.Write(this.viewModel.Data.Count);
+                        foreach (var p in this.viewModel.Data)
                         {
-                            bw.Write(p.X);
-                            bw.Write(p.Y);
-                            bw.Write(p.RelativeX);
-                            bw.Write(p.RelativeY);
+                            bw.Write(p.Transformed.X);
+                            bw.Write(p.Transformed.Y);
+                            bw.Write(p.Relative.X);
+                            bw.Write(p.Relative.Y);
                         }
 
                         bw.Close();
@@ -698,6 +671,16 @@ namespace GraphDigitizer.Views
         private void OnTableSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // TODO: Mark those points as selected
+        }
+
+        private void MouseEnterEventHandler(object sender, MouseEventArgs e)
+        {
+            this.viewModel.IsMouseOverCanvas = true;
+        }
+
+        private void MouseLeaveEventHandler(object sender, MouseEventArgs e)
+        {
+            this.viewModel.IsMouseOverCanvas = false;
         }
     }
 }

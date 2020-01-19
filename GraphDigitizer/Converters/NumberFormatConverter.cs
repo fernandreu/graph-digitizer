@@ -5,8 +5,12 @@ using GraphDigitizer.Views;
 
 namespace GraphDigitizer.Converters
 {
-    public class CoordinateConverter : IValueConverter
+    public class NumberFormatConverter : IValueConverter
     {
+        public int ExponentialDecimals { get; set; } = 4;
+
+        public int FloatDecimals { get; set; } = 8;
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (!(value is double d))
@@ -14,7 +18,7 @@ namespace GraphDigitizer.Converters
                 return null;
             }
 
-            return MainWindow.FormatNum(d);
+            return MainWindow.FormatNum(d, this.ExponentialDecimals, this.FloatDecimals);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
