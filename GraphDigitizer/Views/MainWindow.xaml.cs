@@ -6,10 +6,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using GraphDigitizer.Events;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels;
 using GraphDigitizer.ViewModels.Graphics;
-using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace GraphDigitizer.Views
@@ -21,8 +21,6 @@ namespace GraphDigitizer.Views
     {
         private readonly MainWindowViewModel viewModel;
 
-        private bool precisionMode = false;
-        
         private Point previousPosition;
 
         //Selection rectangle
@@ -30,14 +28,14 @@ namespace GraphDigitizer.Views
         private Point selFirstPos; //First rectangle corner
         private Rectangle selRect; //SelectionRectangle
 
-        //Help window
-        private Help helpWindow;
-
         public MainWindow()
         {
             InitializeComponent();
 
             viewModel = (MainWindowViewModel) DataContext;
+            viewModel.ZoomModeEnter += (o, e) => this.ZoomModeIn();
+            viewModel.ZoomModeLeave += (o, e) => this.ZoomModeOut();
+            viewModel.DialogLaunch += DialogLaunchEventHandler;
 
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
@@ -45,66 +43,11 @@ namespace GraphDigitizer.Views
             }
         }
 
-        private void OnOpenClicked(object sender, RoutedEventArgs e)
+        private void DialogLaunchEventHandler(object sender, LaunchDialogEventArgs e)
         {
-            var ofd = new OpenFileDialog
-            {
-                FileName = "",
-                Filter = "Image files|*.bmp;*.gif;*.tiff;*.jpg;*.jpeg;*.png|Graph Digitizer files|*.gdf",
-            };
-
-            if (ofd.ShowDialog() != true)
-            {
-                return;
-            }
-
-            if (ofd.FilterIndex == 1)
-            {
-                this.viewModel.OpenFile(ofd.FileName);
-                Properties.Settings.Default.LastFile = ofd.FileName;
-                Properties.Settings.Default.Save();
-            }
-            else if (ofd.FilterIndex == 2)
-            {
-                var br = new System.IO.BinaryReader(ofd.OpenFile());
-                var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
-                System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
-
-                var bmp = this.ImageFromBuffer(br.ReadBytes(br.ReadInt32()));
-
-                this.viewModel.CanvasFactor = (int)(Math.Log(br.ReadInt32() / 100.0) / Math.Log(1.2));
-                this.Zoom = br.ReadInt32();
-
-                this.viewModel.TargetImage = new TargetImage
-                {
-                    Width = bmp.PixelWidth,
-                    Height = bmp.PixelHeight,
-                    Source = bmp,
-                };
-
-                Axes.X.Minimum.X = br.ReadDouble(); Axes.X.Minimum.Y = br.ReadDouble(); Axes.X.MinimumValue = br.ReadDouble();
-                Axes.X.Maximum.X = br.ReadDouble(); Axes.X.Maximum.Y = br.ReadDouble(); Axes.X.MaximumValue = br.ReadDouble();
-                Axes.XLog = br.ReadBoolean();
-
-                Axes.Y.Minimum.X = br.ReadDouble(); Axes.Y.Minimum.Y = br.ReadDouble(); Axes.Y.MinimumValue = br.ReadDouble();
-                Axes.Y.Maximum.X = br.ReadDouble(); Axes.Y.Maximum.Y = br.ReadDouble(); Axes.Y.MaximumValue = br.ReadDouble();
-                Axes.YLog = br.ReadBoolean();
-
-                DeletePoints();
-                var total = br.ReadInt32();
-                for (var i = 0; i < total; i++)
-                {
-                    var transformed = new TransformedPoint(br.ReadDouble(), br.ReadDouble());
-                    var relative = new RelativePoint(br.ReadDouble(), br.ReadDouble());
-                    this.viewModel.Data.Add(new DataPoint(transformed, relative, i + 1));
-                }
-
-                viewModel.State = State.Points;
-                SetToolTip();
-                viewModel.CanvasCursor = Cursors.Cross;
-
-                System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
-            }
+            if (this.viewModel.IsInZoomMode) ZoomModeOut(false);
+            var dialog = (Window) Activator.CreateInstance(e.DialogType);
+            dialog.ShowDialog();
         }
 
         private void imgGraph_MouseMove(object sender, MouseEventArgs e)
@@ -145,21 +88,6 @@ namespace GraphDigitizer.Views
             }
         }
 
-        public static string FormatNum(double num, int exponentialDecimals = 4, int floatDecimals = 8)
-        {
-            if (double.IsNaN(num)) return "N/A";
-            if (Math.Abs(num) < 1e-10) return "0";
-
-            var aux = Math.Abs(num);
-            if (aux > Math.Pow(10, exponentialDecimals + 2) - 1 || aux < Math.Pow(10, -exponentialDecimals - 1))
-            {
-                return num.ToString($"E{exponentialDecimals}");
-            }
-
-            var dig = (int)(Math.Log10(aux) + Math.Sign(Math.Log10(aux)));
-            return num.ToString(dig >= 0 ? $"F{floatDecimals - dig}" : $"F{floatDecimals}");
-        }
-
         private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
         {
             var p = e.GetPosition(ZoomImage);
@@ -168,7 +96,6 @@ namespace GraphDigitizer.Views
 
         private void ZoomModeIn()
         {
-            precisionMode = true;
             MouseUtils.GetCursorPos(out var prev);
             previousPosition.X = (double)prev.X;
             previousPosition.Y = (double)prev.Y;
@@ -183,43 +110,9 @@ namespace GraphDigitizer.Views
             MouseUtils.ClipCursor(ref r);
         }
 
-        private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && !precisionMode && this.viewModel.IsMouseOverCanvas)
-            {
-                ZoomModeIn();
-                return;
-            }
-
-            if (Keyboard.IsKeyDown(Key.LeftCtrl) || 
-                Keyboard.IsKeyDown(Key.RightCtrl) || 
-                Keyboard.IsKeyDown(Key.LeftAlt) ||
-                Keyboard.IsKeyDown(Key.RightAlt) || 
-                Keyboard.IsKeyDown(Key.LeftShift) || 
-                Keyboard.IsKeyDown(Key.RightShift))
-            {
-                return;
-            }
-
-            // TODO: This should all be driven from xaml
-            switch (e.Key)
-            {
-                case Key.F1:
-                    OnHelpClicked(sender, e);
-                    break;
-                case Key.D1:
-                    viewModel.SelectModeCommand.Execute(null);
-                    break;
-                case Key.D2:
-                    viewModel.PointsModeCommand.Execute(null);
-                    break;
-            }
-        }
-
         private void ZoomModeOut(bool recover = true)
         {
             MouseUtils.Rect r;
-            precisionMode = false;
             r.Top = int.MinValue;
             r.Bottom = int.MaxValue;
             r.Left = int.MinValue;
@@ -228,19 +121,6 @@ namespace GraphDigitizer.Views
             if (recover) {
                 MouseUtils.SetCursorPos((int)previousPosition.X, (int)previousPosition.Y);
             }
-        }
-
-        private void OnWindowPreviewKeyUp(object sender, KeyEventArgs e)
-        {
-            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && precisionMode)
-                ZoomModeOut();
-        }
-
-        private void AddPoint(RelativePoint position)
-        {
-            var transformed = this.viewModel.GetRealCoords(position);
-            var p = new DataPoint(transformed, position, this.viewModel.Data.Count + 1);
-            this.viewModel.Data.Add(p);
         }
 
         private void SelectPoint(RelativePoint relative)
@@ -268,7 +148,7 @@ namespace GraphDigitizer.Views
             }
             else if (viewModel.State == State.Points)
             {
-                AddPoint(relative);
+                this.viewModel.AddPoint(relative);
             }
             SetToolTip();
         }
@@ -363,7 +243,7 @@ namespace GraphDigitizer.Views
 
         private void SelectAxesProp()
         {
-            if (precisionMode) ZoomModeOut(false);
+            if (this.viewModel.IsInZoomMode) ZoomModeOut(false);
             var ap = new AxesProp(Axes);
             MouseUtils.GetCursorPos(out var p);
             //The program will try to position the window leaving the mouse in a corner
@@ -382,14 +262,9 @@ namespace GraphDigitizer.Views
             viewModel.State = State.Points;
         }
 
-        private void DeletePoints()
-        {
-            this.viewModel.Data.Clear();
-        }
-
         private void OnDeletePointsClicked(object sender, RoutedEventArgs e)
         {
-            DeletePoints();
+            this.viewModel.Data.Clear();
         }
 
         private void OnZoomInClicked(object sender, RoutedEventArgs e)
@@ -463,21 +338,6 @@ namespace GraphDigitizer.Views
             // TODO
             //this.cnvGraph.Children.Remove(this.selRect);
             selecting = false;
-        }
-
-        private void OnHelpClicked(object sender, RoutedEventArgs e)
-        {
-            if (helpWindow == null || !helpWindow.IsLoaded)
-            {
-                helpWindow = new Help();
-                helpWindow.Show();
-            }
-            else
-            {
-                helpWindow.Focus();
-                if (helpWindow.WindowState == WindowState.Minimized)
-                    helpWindow.WindowState = WindowState.Normal;
-            }
         }
 
         private void OnSaveClicked(object sender, RoutedEventArgs e)

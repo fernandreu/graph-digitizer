@@ -1,5 +1,6 @@
 ﻿using System;
 using GraphDigitizer.Converters;
+using GraphDigitizer.Models;
 
 namespace GraphDigitizer.ViewModels.Graphics
 {
@@ -21,7 +22,7 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public AbsolutePoint ToAbsolute(double width, double height, int scaleFactor = 0)
         {
-            var factor = Math.Pow(FactorConverter.DefaultFactor, scaleFactor);
+            var factor = Math.Pow(NumberUtils.ZoomFactor, scaleFactor);
             return new AbsolutePoint(this.X * width * factor, this.Y * height * factor);
         }
     }

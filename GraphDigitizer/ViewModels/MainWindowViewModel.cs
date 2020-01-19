@@ -12,6 +12,7 @@ using GraphDigitizer.Events;
 using GraphDigitizer.Interfaces;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels.Graphics;
+using GraphDigitizer.Views;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -23,6 +24,10 @@ namespace GraphDigitizer.ViewModels
             this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
             this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
             this.ClipboardLoadCommand = new RelayCommand(this.OpenFromClipboard);
+            this.ShowHelpCommand = new RelayCommand(this.ExecuteShowHelpCommand);
+            this.ZoomModeEnterCommand = new RelayCommand(this.ExecuteZoomModeEnterCommand);
+            this.ZoomModeLeaveCommand = new RelayCommand(this.ExecuteZoomModeLeaveCommand);
+            this.KeyUpCommand = new RelayCommand<KeyEventArgs>(this.ExecuteKeyUpCommand);
 
             this.Data.CollectionChanged += this.OnDataChanged;
             this.Axes = new Axes();
@@ -35,6 +40,14 @@ namespace GraphDigitizer.ViewModels
         public RelayCommand OpenFileCommand { get; }
 
         public RelayCommand ClipboardLoadCommand { get; }
+
+        public RelayCommand ShowHelpCommand { get; }
+
+        public RelayCommand ZoomModeEnterCommand { get; }
+
+        public RelayCommand ZoomModeLeaveCommand { get; }
+
+        public RelayCommand<KeyEventArgs> KeyUpCommand { get; }
 
         private TargetImage targetImage;
 
@@ -180,7 +193,21 @@ namespace GraphDigitizer.ViewModels
             set => this.Set(ref this.isMouseOverCanvas, value);
         }
 
+        private bool isInZoomMode;
+
+        public bool IsInZoomMode
+        {
+            get => this.isInZoomMode;
+            set => this.Set(ref this.isInZoomMode, value);
+        }
+
         public event EventHandler<FileEventArgs> OpeningFile;
+
+        public event EventHandler ZoomModeEnter;
+
+        public event EventHandler ZoomModeLeave;
+
+        public event EventHandler<LaunchDialogEventArgs> DialogLaunch;
 
         private void ExecuteSelectModeCommand()
         {
@@ -206,6 +233,36 @@ namespace GraphDigitizer.ViewModels
             }
 
             this.OpenFile(args.File);
+        }
+
+        private void ExecuteShowHelpCommand()
+        {
+            this.LaunchDialog<Help>();
+        }
+
+        private void ExecuteZoomModeEnterCommand()
+        {
+            if (!this.IsMouseOverCanvas || this.IsInZoomMode)
+            {
+                return;
+            }
+
+            this.ZoomModeEnter?.Invoke(this, EventArgs.Empty);
+            this.IsInZoomMode = true;
+        }
+
+        private void ExecuteZoomModeLeaveCommand()
+        {
+            this.IsInZoomMode = false;
+            this.ZoomModeLeave?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ExecuteKeyUpCommand(KeyEventArgs e)
+        {
+            if (e.Key == Key.Z && this.IsInZoomMode)
+            {
+                this.ExecuteZoomModeLeaveCommand();
+            }
         }
 
         private void OpenFromClipboard()
@@ -327,6 +384,13 @@ namespace GraphDigitizer.ViewModels
                     break;
             }
         }
+        
+        public void AddPoint(RelativePoint position)
+        {
+            var transformed = this.GetRealCoords(position);
+            var p = new DataPoint(transformed, position, this.Data.Count + 1);
+            this.Data.Add(p);
+        }
 
         private void OnDataChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -346,6 +410,11 @@ namespace GraphDigitizer.ViewModels
                     this.CanvasElements.Add(item);
                 }
             }
+        }
+
+        private void LaunchDialog<T>() where T : Window
+        {
+            this.DialogLaunch?.Invoke(this, new LaunchDialogEventArgs(typeof(T)));
         }
     }
 }

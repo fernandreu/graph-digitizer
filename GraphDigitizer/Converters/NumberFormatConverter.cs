@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Windows.Data;
+using GraphDigitizer.Models;
 using GraphDigitizer.Views;
 
 namespace GraphDigitizer.Converters
@@ -18,7 +19,7 @@ namespace GraphDigitizer.Converters
                 return null;
             }
 
-            return MainWindow.FormatNum(d, this.ExponentialDecimals, this.FloatDecimals);
+            return NumberUtils.FormatNum(d, this.ExponentialDecimals, this.FloatDecimals);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
