@@ -109,7 +109,7 @@ namespace GraphDigitizer.Views
 
         private void imgGraph_MouseMove(object sender, MouseEventArgs e)
         {
-            var graph = (UIElement)sender;
+            var graph = (FrameworkElement)sender;
             var p = e.GetPosition(graph);
             if (selecting) //Update selection rectangle position
             {
@@ -130,7 +130,7 @@ namespace GraphDigitizer.Views
                 }
             }
 
-            viewModel.MousePosition = new RelativePoint(p.X / viewModel.TargetImage.Width, p.Y / viewModel.TargetImage.Height);
+            viewModel.MousePosition = new RelativePoint(p.X / graph.ActualWidth, p.Y / graph.ActualHeight);
 
             if (viewModel.State == State.Axes)
             {
