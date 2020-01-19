@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using GraphDigitizer.Converters;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -42,48 +43,8 @@ namespace GraphDigitizer.Views
             dgrPoints.ItemsSource = data;
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
-                OpenFile(Properties.Settings.Default.LastFile);
+                this.viewModel.OpenFile(Properties.Settings.Default.LastFile);
             }
-        }
-
-        private void OpenFile(string path)
-        {
-            var bmp = new BitmapImage(new Uri(path));
-
-            //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
-            this.viewModel.CanvasFactor = 0;
-
-            this.viewModel.TargetImage = new TargetImage
-            {
-                Source = bmp,
-                Width = bmp.PixelWidth,
-                Height = bmp.PixelHeight,
-            };
-
-            this.imgZoom.Width = bmp.PixelWidth * this.Zoom;
-            this.imgZoom.Height = bmp.PixelHeight * this.Zoom;
-            this.imgZoom.Source = bmp;
-
-            viewModel.State = State.Axes;
-            Axes.Status = 0;
-
-            this.DeletePoints();
-            if (this.Axes.Xaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Xaxis);
-            }
-
-            if (this.Axes.Yaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Yaxis);
-            }
-
-            Axes.Xmin.X = Axes.Xmin.Y = Axes.Xmax.X = Axes.Xmax.Y = Axes.Ymin.X = Axes.Ymin.Y = Axes.Ymax.X = Axes.Ymax.Y = double.NaN;
-
-            SetToolTip();
-            viewModel.CanvasCursor = Cursors.Cross;
         }
 
         private void OnOpenClicked(object sender, RoutedEventArgs e)
@@ -101,7 +62,7 @@ namespace GraphDigitizer.Views
 
             if (ofd.FilterIndex == 1)
             {
-                this.OpenFile(ofd.FileName);
+                this.viewModel.OpenFile(ofd.FileName);
                 Properties.Settings.Default.LastFile = ofd.FileName;
                 Properties.Settings.Default.Save();
             }
@@ -122,10 +83,6 @@ namespace GraphDigitizer.Views
                     Height = bmp.PixelHeight,
                     Source = bmp,
                 };
-
-                this.imgZoom.Width = bmp.PixelWidth * this.Zoom;
-                this.imgZoom.Height = bmp.PixelHeight * this.Zoom;
-                this.imgZoom.Source = this.viewModel.TargetImage.Source;
 
                 Axes.Xmin.X = br.ReadDouble(); Axes.Xmin.Y = br.ReadDouble(); Axes.Xmin.Value = br.ReadDouble();
                 Axes.Xmax.X = br.ReadDouble(); Axes.Xmax.Y = br.ReadDouble(); Axes.Xmax.Value = br.ReadDouble();
@@ -157,7 +114,8 @@ namespace GraphDigitizer.Views
 
         private void imgGraph_MouseMove(object sender, MouseEventArgs e)
         {
-            var p = e.GetPosition(sender as IInputElement);
+            var graph = (UIElement)sender;
+            var p = e.GetPosition(graph);
             if (selecting) //Update selection rectangle position
             {
                 if (p.X > selFirstPos.X)
@@ -177,9 +135,7 @@ namespace GraphDigitizer.Views
                 }
             }
 
-            viewModel.UpdateStatusCoords(p.X, p.Y);
-            Canvas.SetLeft(this.imgZoom, 100 - p.X * this.Zoom);
-            Canvas.SetTop(this.imgZoom, 100 - p.Y * this.Zoom);
+            viewModel.MousePosition = new Point(p.X / viewModel.TargetImage.Width, p.Y / viewModel.TargetImage.Height);
 
             if (viewModel.State == State.Axes)
             {
@@ -214,11 +170,12 @@ namespace GraphDigitizer.Views
         private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
         {
             var p = e.GetPosition(imgZoom);
-            viewModel.UpdateStatusCoords(p.X / Zoom, p.Y / Zoom);
+            viewModel.UpdateStatusCoords(p.X / imgZoom.ActualWidth * viewModel.TargetImage.Width, p.Y / imgZoom.ActualHeight * viewModel.TargetImage.Height);
         }
 
         private void ZoomModeIn()
         {
+            // TODO: Hard-coded 100 / 200 (should refer to actual canvas size)
             precisionMode = true;
             MouseUtils.GetCursorPos(out var prev);
             previousPosition.X = (double)prev.X;
@@ -236,7 +193,7 @@ namespace GraphDigitizer.Views
 
         private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) /* && cnvGraph.IsMouseOver TODO*/)
+            if ((e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl) && !precisionMode)
             {
                 ZoomModeIn();
                 return;
@@ -516,15 +473,11 @@ namespace GraphDigitizer.Views
         private void OnZoomInClicked(object sender, RoutedEventArgs e)
         {
             if (this.Zoom < 16) this.Zoom *= 2;
-            imgZoom.Width = ((BitmapSource)imgZoom.Source).PixelWidth * this.Zoom;
-            imgZoom.Height = ((BitmapSource)imgZoom.Source).PixelHeight * this.Zoom;
         }
 
         private void OnZoomOutClicked(object sender, RoutedEventArgs e)
         {
             if (this.Zoom > 1) this.Zoom /= 2;
-            imgZoom.Width = ((BitmapSource)imgZoom.Source).PixelWidth * this.Zoom;
-            imgZoom.Height = ((BitmapSource)imgZoom.Source).PixelHeight * this.Zoom;
         }
 
         private void OnEnlargeClicked(object sender, RoutedEventArgs e)
@@ -692,8 +645,8 @@ namespace GraphDigitizer.Views
                         {
                             bw.Write(p.X);
                             bw.Write(p.Y);
-                            bw.Write(p.RealX);
-                            bw.Write(p.RealY);
+                            bw.Write(p.RelativeX);
+                            bw.Write(p.RelativeY);
                         }
 
                         bw.Close();
@@ -720,52 +673,6 @@ namespace GraphDigitizer.Views
             enc.Frames.Add(BitmapFrame.Create(imageSource));
             enc.Save(ms);
             return ms.ToArray();
-        }
-
-        private void btnFromClipboard_Click(object sender, RoutedEventArgs e)
-        {
-            if (!Clipboard.ContainsImage())
-            {
-                MessageBox.Show("The Clipboard does not contain a valid image.", "Invalid Clipboard content", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            var bmp = Clipboard.GetImage();
-
-            //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
-            this.viewModel.CanvasFactor = 0;
-
-            this.viewModel.TargetImage = new TargetImage
-            {
-                Source = bmp,
-                Width = bmp.PixelWidth,
-                Height = bmp.PixelHeight
-            };
-
-            this.imgZoom.Width = bmp.PixelWidth * this.Zoom;
-            this.imgZoom.Height = bmp.PixelHeight * this.Zoom;
-            this.imgZoom.Source = bmp;
-
-            this.viewModel.State = State.Axes;
-            this.Axes.Status = 0;
-
-            this.DeletePoints();
-            if (this.Axes.Xaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Xaxis);
-            }
-
-            if (this.Axes.Yaxis != null)
-            {
-                // TODO
-                //this.cnvGraph.Children.Remove(this.Axes.Yaxis);
-            }
-
-            Axes.Xmin.X = Axes.Xmin.Y = Axes.Xmax.X = Axes.Xmax.Y = Axes.Ymin.X = Axes.Ymin.Y = Axes.Ymax.X = Axes.Ymax.Y = double.NaN;
-
-            SetToolTip();
-            viewModel.CanvasCursor = Cursors.Cross;
         }
 
         // TODO: All code below should be removed once MVVM is fully implemented

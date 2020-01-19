@@ -28,26 +28,26 @@ namespace GraphDigitizer.ViewModels
             set => this.Set(ref this.y, value);
         }
 
-        private double realX;
+        private double relativeX;
 
         /// <summary>
-        /// The point's X coordinate in screen units
+        /// The point's X coordinate in relative units (0 for left, 1 for right)
         /// </summary>
-        public double RealX
+        public double RelativeX
         {
-            get => this.realX;
-            set => this.Set(ref this.realX, value);
+            get => this.relativeX;
+            set => this.Set(ref this.relativeX, value);
         }
 
-        private double realY;
+        private double relativeY;
 
         /// <summary>
-        /// The point's Y coordinate in screen units
+        /// The point's Y coordinate in relative units (0 for top, 1 for bottom)
         /// </summary>
-        public double RealY
+        public double RelativeY
         {
-            get => this.realY;
-            set => this.Set(ref this.realY, value);
+            get => this.relativeY;
+            set => this.Set(ref this.relativeY, value);
         }
 
         private int index;
@@ -65,12 +65,12 @@ namespace GraphDigitizer.ViewModels
 
         public string Yform { get; set; }
 
-        public DataPoint(double x, double y, double realx, double realy, int pos)
+        public DataPoint(double x, double y, double relativeX, double relativeY, int pos)
         {
             this.X = x;
             this.Y = y;
-            this.RealX = realx;
-            this.RealY = realy;
+            this.RelativeX = relativeX;
+            this.RelativeY = relativeY;
             this.Xform = MainWindow.FormatNum(x);
             this.Yform = MainWindow.FormatNum(y);
             this.Index = pos;

@@ -5,22 +5,22 @@
         <GradientStop Offset="1" Color="#FFA1B6B9"/>
     </LinearGradientBrush>
     
-    <LinearGradientBrush x:Key="btnGlassFX" StartPoint=".5,0" EndPoint=".5,.5">
+    <LinearGradientBrush x:Key="GlassEffect" StartPoint=".5,0" EndPoint=".5,.5">
         <GradientStop Offset="1" Color="#33DDDDDD"/>
         <GradientStop Offset="1" Color="#33555555"/>
     </LinearGradientBrush>
     
-    <LinearGradientBrush x:Key="btnMouseOverFX" StartPoint=".5,0" EndPoint=".5,.5">
+    <LinearGradientBrush x:Key="MouseOverEffect" StartPoint=".5,0" EndPoint=".5,.5">
         <GradientStop Offset="1" Color="#FFF5BC6C"/>
         <GradientStop Offset="1" Color="#FFE5892F"/>
     </LinearGradientBrush>
     
-    <Storyboard x:Key="btnMouseEnter">
-        <DoubleAnimation x:Name="AnimMouseEnter" BeginTime="00:00:00" Storyboard.TargetName="MouseRectangle" Duration="00:00:00.200" From="0" To="0.7" Storyboard.TargetProperty="Opacity"/>
+    <Storyboard x:Key="MouseEnterButtonAnimation">
+        <DoubleAnimation BeginTime="00:00:00" Storyboard.TargetName="MouseRectangle" Duration="00:00:00.200" From="0" To="0.7" Storyboard.TargetProperty="Opacity"/>
     </Storyboard>
 
-    <Storyboard x:Key="btnMouseLeave">
-        <DoubleAnimation x:Name="AnimMouseLeave" BeginTime="00:00:00" Storyboard.TargetName="MouseRectangle" Duration="00:00:00.200" From="0.7" To="0" Storyboard.TargetProperty="Opacity"/>
+    <Storyboard x:Key="MouseLeaveButtonAnimation">
+        <DoubleAnimation BeginTime="00:00:00" Storyboard.TargetName="MouseRectangle" Duration="00:00:00.200" From="0.7" To="0" Storyboard.TargetProperty="Opacity"/>
     </Storyboard>
     
     <Style TargetType="{x:Type Button}" x:Key="ToolBarButtonStyle">
@@ -29,23 +29,23 @@
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="btnTemplate">
+                <ControlTemplate>
                     <Grid>
-                        <Border x:Name="BaseRectangle" Background="{StaticResource btnBackground}" CornerRadius="2,6,2,6" Margin="0,0,0,1"/>
-                        <Border x:Name="GlassRectangle" Background="{StaticResource btnGlassFX}" CornerRadius="2,6,2,6" Margin="0,0,0,1"/>
-                        <Border x:Name="MouseRectangle" Background="{StaticResource btnMouseOverFX}" CornerRadius="2,6,2,6" Opacity="0" Margin="0,0,0,1"/>
-                        <Border x:Name="ButtonBorder" CornerRadius="2,6,2,6" BorderBrush="#FF4D6265" Opacity="0.5" BorderThickness="1" Margin="0,0,0,1"/>
+                        <Border Background="{StaticResource btnBackground}" CornerRadius="2,6,2,6"/>
+                        <Border Background="{StaticResource GlassEffect}" CornerRadius="2,6,2,6"/>
+                        <Border x:Name="MouseRectangle" Background="{StaticResource MouseOverEffect}" CornerRadius="2,6,2,6" Opacity="0"/>
+                        <Border x:Name="ButtonBorder" CornerRadius="2,6,2,6" BorderBrush="#FF4D6265" Opacity="0.5" BorderThickness="1"/>
                         <ContentPresenter x:Name="ButtonContent" Opacity=".9" Content="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0" Width="20" Height="20"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <EventTrigger RoutedEvent="Button.MouseEnter">
                             <EventTrigger.Actions>
-                                <BeginStoryboard Storyboard="{StaticResource btnMouseEnter}"/>
+                                <BeginStoryboard Storyboard="{StaticResource MouseEnterButtonAnimation}"/>
                             </EventTrigger.Actions>
                         </EventTrigger>
                         <EventTrigger RoutedEvent="Button.MouseLeave">
                             <EventTrigger.Actions>
-                                <BeginStoryboard Storyboard="{StaticResource btnMouseLeave}"/>
+                                <BeginStoryboard Storyboard="{StaticResource MouseLeaveButtonAnimation}"/>
                             </EventTrigger.Actions>
                         </EventTrigger>
                         <Trigger Property="Button.IsPressed" Value="True">
@@ -69,7 +69,7 @@
         <Setter Property="Height" Value="20"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="dgrHeaderTemplate">
+                <ControlTemplate>
                     <Grid>
                         <Border x:Name="HeaderBackground" Background="{StaticResource dgrHeaderBackground}" />
                         <ContentPresenter x:Name="HeaderContent" Content="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
@@ -85,11 +85,12 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Width" Value="16"/>
         <Setter Property="Height" Value="16"/>
+        <Setter Property="Margin" Value="-8,-8,8,8"></Setter>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="Foreground" Value="Black"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="lblPoint">
+                <ControlTemplate>
                     <Grid>
                         <Border Background="#FFFC8A45" BorderBrush="#FF3E150A" BorderThickness="1" CornerRadius="7"/>
                         <Border CornerRadius="7" Opacity="0.5">
@@ -118,7 +119,7 @@
         <Setter Property="Foreground" Value="#FFCAD6DF"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="lblPoint">
+                <ControlTemplate>
                     <Grid>
                         <Border Background="#FF233849" BorderBrush="#FFCAD6DF" BorderThickness="0.8" CornerRadius="7"/>
                         <Border>
@@ -136,7 +137,7 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="tmplRepeatButton">
+                <ControlTemplate>
                     <Border x:Name="brdLine" Background="#FFC5CCD8" BorderBrush="#FF5C7190" BorderThickness="1" CornerRadius="2">
                         <Path HorizontalAlignment="Center" VerticalAlignment="Center" Data="{Binding Path=Content,RelativeSource={RelativeSource TemplatedParent}}" Fill="#FF4F5C72" >
                         </Path>
@@ -150,7 +151,7 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="tmplRepeatButton">
+                <ControlTemplate>
                     <Border Background="Transparent">
                     </Border>
                 </ControlTemplate>
@@ -162,7 +163,7 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate x:Name="tmplScrollThumb">
+                <ControlTemplate>
                     <Grid>
                         <Border x:Name="brdThumb" CornerRadius="2" BorderBrush="#FF354B6C" Background="#FFC5CCD8" BorderThickness="1">
                             <Path HorizontalAlignment="Center" VerticalAlignment="Center" Data="{Binding Path=Content,RelativeSource={RelativeSource TemplatedParent}}">

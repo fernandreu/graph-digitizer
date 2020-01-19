@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using GraphDigitizer.Events;
@@ -19,9 +20,18 @@ namespace GraphDigitizer.ViewModels
             this.SelectModeCommand = new RelayCommand(this.ExecuteSelectModeCommand);
             this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
             this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
+            this.ClipboardLoadCommand = new RelayCommand(this.OpenFromClipboard);
 
             this.Data.CollectionChanged += this.OnDataChanged;
         }
+
+        public RelayCommand SelectModeCommand { get; }
+
+        public RelayCommand PointsModeCommand { get; }
+
+        public RelayCommand OpenFileCommand { get; }
+
+        public RelayCommand ClipboardLoadCommand { get; }
 
         private TargetImage targetImage;
 
@@ -58,6 +68,23 @@ namespace GraphDigitizer.ViewModels
         {
             get => this.axes;
             set => this.Set(ref this.axes, value);
+        }
+
+        private Point mousePosition;
+
+        // The position of the mouse relative to the image's size, from 0 to 1
+        public Point MousePosition
+        {
+            get => this.mousePosition;
+            set
+            {
+                if (!this.Set(ref this.mousePosition, value))
+                {
+                    return;
+                }
+
+                this.UpdateStatusCoords(mousePosition.X * this.TargetImage.Width, mousePosition.Y * this.TargetImage.Height);
+            }
         }
 
         private int zoom = Properties.Settings.Default.Zoom;
@@ -122,12 +149,6 @@ namespace GraphDigitizer.ViewModels
             set => this.Set(ref this.canvasCursor, value);
         }
 
-        public RelayCommand SelectModeCommand { get; }
-
-        public RelayCommand PointsModeCommand { get; }
-
-        public RelayCommand OpenFileCommand { get; }
-
         public event EventHandler<FileEventArgs> OpeningFile;
 
         private void ExecuteSelectModeCommand()
@@ -153,7 +174,59 @@ namespace GraphDigitizer.ViewModels
                 return;
             }
 
-            // TODO: Move code from MainWindow.OnOpenClicked
+            this.OpenFile(args.File);
+        }
+
+        private void OpenFromClipboard()
+        {
+            if (!Clipboard.ContainsImage())
+            {
+                MessageBox.Show("The Clipboard does not contain a valid image.", "Invalid Clipboard content", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var bmp = Clipboard.GetImage();
+            this.LoadBitmap(bmp);
+        }
+
+        public void OpenFile(string path)
+        {
+            var bmp = new BitmapImage(new Uri(path));
+            this.LoadBitmap(bmp);
+        }
+
+        private void LoadBitmap(BitmapSource bmp)
+        {
+            //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
+            this.CanvasFactor = 0;
+
+            this.TargetImage = new TargetImage
+            {
+                Source = bmp,
+                Width = bmp.PixelWidth,
+                Height = bmp.PixelHeight
+            };
+
+            this.State = State.Axes;
+            this.Axes.Status = 0;
+
+            this.Data.Clear();
+            if (this.Axes.Xaxis != null)
+            {
+                // TODO
+                //this.cnvGraph.Children.Remove(this.Axes.Xaxis);
+            }
+
+            if (this.Axes.Yaxis != null)
+            {
+                // TODO
+                //this.cnvGraph.Children.Remove(this.Axes.Yaxis);
+            }
+
+            Axes.Xmin.X = Axes.Xmin.Y = Axes.Xmax.X = Axes.Xmax.Y = Axes.Ymin.X = Axes.Ymin.Y = Axes.Ymax.X = Axes.Ymax.Y = double.NaN;
+
+            SetToolTip();
+            this.CanvasCursor = Cursors.Cross;
         }
 
         public (double, double) GetRealCoords(double screenX, double screenY)
