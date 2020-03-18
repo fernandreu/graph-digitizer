@@ -1,13 +1,17 @@
 ﻿<Window x:Class="GraphDigitizer.Views.AboutDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:GraphDigitizer.Controls"
+        xmlns:viewModels="clr-namespace:GraphDigitizer.ViewModels"
+        mc:Ignorable="d"
         Title="About Graph Digitizer" 
         Height="319"
         Width="453"
         Icon="/Resources/Help.png"
         WindowStartupLocation="CenterScreen"
-        DataContext="{Binding About, Source={StaticResource Locator}}">
+        d:DataContext="{d:DesignInstance viewModels:AboutDialogViewModel}">
     <StackPanel VerticalAlignment="Center">
         <StackPanel.Resources>
             <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">

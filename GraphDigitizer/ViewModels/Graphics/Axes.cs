@@ -1,13 +1,12 @@
 ﻿using GalaSoft.MvvmLight;
-using GraphDigitizer.Interfaces;
 
 namespace GraphDigitizer.ViewModels.Graphics
 {
     public class Axes : ViewModelBase
     {
-        public Axis X = new Axis { IsXAxis = true };
+        public Axis X { get; } = new Axis { IsXAxis = true };
 
-        public Axis Y = new Axis { IsXAxis = false };
+        public Axis Y { get; } = new Axis { IsXAxis = false };
 
         private int status;
 

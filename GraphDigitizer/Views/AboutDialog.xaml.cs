@@ -1,10 +1,10 @@
 ﻿using System.Windows;
+using GraphDigitizer.Attributes;
+using GraphDigitizer.ViewModels;
 
 namespace GraphDigitizer.Views
 {
-    /// <summary>
-    /// Interaction logic for Help.xaml
-    /// </summary>
+    [Register(typeof(AboutDialogViewModel))]
     public partial class AboutDialog : Window
     {
         public AboutDialog()

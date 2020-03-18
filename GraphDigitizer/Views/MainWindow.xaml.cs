@@ -35,19 +35,11 @@ namespace GraphDigitizer.Views
             viewModel = (MainWindowViewModel) DataContext;
             viewModel.ZoomModeEnter += (o, e) => this.ZoomModeIn();
             viewModel.ZoomModeLeave += (o, e) => this.ZoomModeOut();
-            viewModel.DialogLaunch += DialogLaunchEventHandler;
 
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
                 this.viewModel.OpenFile(Properties.Settings.Default.LastFile);
             }
-        }
-
-        private void DialogLaunchEventHandler(object sender, LaunchDialogEventArgs e)
-        {
-            if (this.viewModel.IsInZoomMode) ZoomModeOut(false);
-            var dialog = (Window) Activator.CreateInstance(e.DialogType);
-            dialog.ShowDialog();
         }
 
         private void imgGraph_MouseMove(object sender, MouseEventArgs e)
@@ -144,7 +136,7 @@ namespace GraphDigitizer.Views
                 }
                 Axes.Status++;
                 if (Axes.Status == 4)
-                    SelectAxesProp();
+                    this.viewModel.SelectAxesProp();
             }
             else if (viewModel.State == State.Points)
             {
@@ -238,28 +230,7 @@ namespace GraphDigitizer.Views
 
         private void btnAxesProp_Click(object sender, RoutedEventArgs e)
         {
-            SelectAxesProp();
-        }
-
-        private void SelectAxesProp()
-        {
-            if (this.viewModel.IsInZoomMode) ZoomModeOut(false);
-            var ap = new AxesProp(Axes);
-            MouseUtils.GetCursorPos(out var p);
-            //The program will try to position the window leaving the mouse in a corner
-            if (p.X + ap.Width > SystemParameters.PrimaryScreenWidth)
-                ap.Left = p.X - ap.Width + 20;
-            else
-                ap.Left = p.X;
-
-            if (p.Y + ap.Height > SystemParameters.PrimaryScreenHeight - 50) // Threshold for the Windows taskbar
-                ap.Top = p.Y - ap.Height;
-            else
-                ap.Top = p.Y;
-
-            ap.ShowDialog();
-            Axes = ap.Axes;
-            viewModel.State = State.Points;
+            this.viewModel.SelectAxesProp();
         }
 
         private void OnDeletePointsClicked(object sender, RoutedEventArgs e)

@@ -1,56 +1,43 @@
-﻿using System.Globalization;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using GraphDigitizer.Attributes;
 using GraphDigitizer.Models;
-using GraphDigitizer.ViewModels.Graphics;
+using GraphDigitizer.ViewModels;
 
 namespace GraphDigitizer.Views
 {
-    /// <summary>
-    /// Interaction logic for AxesProp.xaml
-    /// </summary>
+    [Register(typeof(AxesPropViewModel))]
     public partial class AxesProp : Window
     {
-        public Axes Axes { get; }
+        private AxesPropViewModel viewModel;
 
-        public AxesProp(Axes ax)
+        public AxesProp()
         {
-            this.Axes = ax;
             this.InitializeComponent();
-            this.XMinBox.Text = this.Axes.X.MinimumValue.ToString(CultureInfo.InvariantCulture);
-            this.XMaxBox.Text = this.Axes.X.MaximumValue.ToString(CultureInfo.InvariantCulture);
-            this.XLogBox.IsChecked = this.Axes.XLog;
-
-            this.YMinBox.Text = this.Axes.Y.MinimumValue.ToString(CultureInfo.InvariantCulture);
-            this.YMaxBox.Text = this.Axes.Y.MaximumValue.ToString(CultureInfo.InvariantCulture);
-            this.YLogBox.IsChecked = this.Axes.YLog;
         }
 
-        private void OnAcceptClick(object sender, RoutedEventArgs e)
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
         {
-            if (double.TryParse(this.XMinBox.Text, out var val))
+            base.OnPropertyChanged(e);
+
+            if (e.Property != DataContextProperty || !(this.DataContext is AxesPropViewModel vm))
             {
-                this.Axes.X.MinimumValue = val;
+                return;
             }
 
-            if (double.TryParse(this.XMaxBox.Text, out val))
+            if (this.viewModel != null)
             {
-                this.Axes.X.MaximumValue = val;
+                this.viewModel.Closing -= this.ClosingEventHandler;
             }
 
-            if (double.TryParse(this.YMinBox.Text, out val))
-            {
-                this.Axes.Y.MinimumValue = val;
-            }
+            this.viewModel = vm;
+            vm.Closing += this.ClosingEventHandler;
+        }
 
-            if (double.TryParse(this.YMaxBox.Text, out val))
-            {
-                this.Axes.Y.MaximumValue = val;
-            }
-
-            this.Axes.XLog = this.XLogBox.IsChecked.Value;
-            this.Axes.YLog = this.YLogBox.IsChecked.Value;
+        private void ClosingEventHandler(object sender, EventArgs e)
+        {
             this.Close();
         }
 
@@ -61,7 +48,17 @@ namespace GraphDigitizer.Views
 
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
-            this.XMinBox.Focus();
+            //Try to position the window leaving the mouse in a corner
+            MouseUtils.GetCursorPos(out var p);
+            if (p.X + this.Width > SystemParameters.PrimaryScreenWidth)
+                this.Left = p.X - this.Width + 20;
+            else
+                this.Left = p.X;
+
+            if (p.Y + this.Height > SystemParameters.PrimaryScreenHeight - 50) // Threshold for the Windows taskbar
+                this.Top = p.Y - this.Height;
+            else
+                this.Top = p.Y;
         }
     }
 }

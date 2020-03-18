@@ -1,4 +1,6 @@
 ﻿using GalaSoft.MvvmLight.Ioc;
+using GraphDigitizer.Interfaces;
+using GraphDigitizer.Services;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -8,10 +10,10 @@ namespace GraphDigitizer.ViewModels
         {
             SimpleIoc.Default.Register<MainWindowViewModel>();
             SimpleIoc.Default.Register<AboutDialogViewModel>();
+            SimpleIoc.Default.Register<AxesPropViewModel>();
+            SimpleIoc.Default.Register<IDialogService, DialogService>();
         }
 
         public MainWindowViewModel Main => SimpleIoc.Default.GetInstance<MainWindowViewModel>();
-
-        public AboutDialogViewModel About => SimpleIoc.Default.GetInstance<AboutDialogViewModel>();
     }
 }

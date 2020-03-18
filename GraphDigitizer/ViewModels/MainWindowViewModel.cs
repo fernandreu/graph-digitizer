@@ -18,8 +18,12 @@ namespace GraphDigitizer.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
-        public MainWindowViewModel()
+        private readonly IDialogService dialogService;
+
+        public MainWindowViewModel(IDialogService dialogService)
         {
+            this.dialogService = dialogService;
+
             this.SelectModeCommand = new RelayCommand(this.ExecuteSelectModeCommand);
             this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
             this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
@@ -207,8 +211,6 @@ namespace GraphDigitizer.ViewModels
 
         public event EventHandler ZoomModeLeave;
 
-        public event EventHandler<LaunchDialogEventArgs> DialogLaunch;
-
         private void ExecuteSelectModeCommand()
         {
             this.State = State.Select;
@@ -237,7 +239,7 @@ namespace GraphDigitizer.ViewModels
 
         private void ExecuteShowHelpCommand()
         {
-            this.LaunchDialog<AboutDialog>();
+            this.dialogService.ShowDialog<AboutDialogViewModel>();
         }
 
         private void ExecuteZoomModeEnterCommand()
@@ -412,9 +414,12 @@ namespace GraphDigitizer.ViewModels
             }
         }
 
-        private void LaunchDialog<T>() where T : Window
+        public void SelectAxesProp()
         {
-            this.DialogLaunch?.Invoke(this, new LaunchDialogEventArgs(typeof(T)));
+            if (this.IsInZoomMode) this.ZoomModeLeaveCommand.Execute(null);
+            var ap = this.dialogService.ShowDialog<AxesPropViewModel, Axes>(Axes);
+            Axes = ap.Axes;
+            this.State = State.Points;
         }
     }
 }
