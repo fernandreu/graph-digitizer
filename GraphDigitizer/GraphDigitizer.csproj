@@ -24,7 +24,6 @@
   <ItemGroup>
     <Resource Include="**\*.png" />
     <Resource Include="**\*.ico" />
-    <None Include="**\*.rtf" />
   </ItemGroup>
 
   <ItemGroup>

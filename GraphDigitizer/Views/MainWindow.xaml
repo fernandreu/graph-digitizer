@@ -221,7 +221,7 @@
                 <Button Click="OnRestoreClicked" ToolTip="Restore the main image size">
                     <Image Source="/Resources/OriginalSize.png"/>
                 </Button>
-                <Button Command="{Binding ShowHelpCommand}" ToolTip="Show the help window (Hotkey: H)">
+                <Button Command="{Binding ShowHelpCommand}" ToolTip="Show the about dialog">
                     <Image Source="/Resources/Help.png"/>
                 </Button>
             </StackPanel>

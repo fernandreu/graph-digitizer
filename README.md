@@ -2,6 +2,17 @@
 
 A standalone Winodws desktop tool to extract the numeric coordinates of a 2D graph in image format.
 
+
+## Basic Program Usage
+
+1. Load a graph with the first button of the above toolbar.
+2. Select two points of the horizontal axis (X axis).
+3. Select two points of the vertical axis (Y axis).
+4. A dialog will appear for specifying the values of each axis that have been selected, and also whether the axes are logarithmic or not.
+5. Now the graph is fully calibrated. Start picking curve points with the left mouse button.
+6. After all the desired points have been selected, they can be copied by either the specific toolbar button or the contextual menu of the left grid.
+
+
 ### Details
 
 Once the axes of the graph are defined, the program will translate screen coordinates into graph coordinates. The axes can also

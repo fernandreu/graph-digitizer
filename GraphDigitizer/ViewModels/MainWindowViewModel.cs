@@ -237,7 +237,7 @@ namespace GraphDigitizer.ViewModels
 
         private void ExecuteShowHelpCommand()
         {
-            this.LaunchDialog<Help>();
+            this.LaunchDialog<AboutDialog>();
         }
 
         private void ExecuteZoomModeEnterCommand()
