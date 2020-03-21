@@ -11,6 +11,7 @@ using GraphDigitizer.Events;
 using GraphDigitizer.Interfaces;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels.Graphics;
+using Microsoft.Win32;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -22,6 +23,16 @@ namespace GraphDigitizer.ViewModels
         {
             this.dialogService = dialogService;
 
+            this.SaveCommand = new RelayCommand(this.ExecuteSaveCommand);
+            this.AxesCommand = new RelayCommand(this.ExecuteAxesCommand);
+            this.CopyCommand = new RelayCommand(this.ExecuteCopyCommand);
+            this.ZoomInCommand = new RelayCommand(this.ExecuteZoomInCommand);
+            this.ZoomOutCommand = new RelayCommand(this.ExecuteZoomOutCommand);
+            this.EnlargeCommand = new RelayCommand(this.ExecuteEnlargeCommand);
+            this.ReduceCommand = new RelayCommand(this.ExecuteReduceCommand);
+            this.RestoreCommand = new RelayCommand(this.ExecuteRestoreCommand);
+            this.ClearDataCommand = new RelayCommand(this.ExecuteClearDataCommand);
+            this.AxesPropCommand = new RelayCommand(this.SelectAxesProp);
             this.SelectModeCommand = new RelayCommand(this.ExecuteSelectModeCommand);
             this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
             this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
@@ -35,6 +46,26 @@ namespace GraphDigitizer.ViewModels
             this.SelectedData.CollectionChanged += this.OnSelectedDataChanged;
             this.Axes = new Axes();
         }
+
+        public RelayCommand SaveCommand { get; }
+
+        public RelayCommand AxesCommand { get; }
+
+        public RelayCommand CopyCommand { get; }
+
+        public RelayCommand ZoomInCommand { get; }
+
+        public RelayCommand ZoomOutCommand { get; }
+
+        public RelayCommand EnlargeCommand { get; }
+
+        public RelayCommand ReduceCommand { get; }
+
+        public RelayCommand RestoreCommand { get; }
+
+        public RelayCommand ClearDataCommand { get; }
+
+        public RelayCommand AxesPropCommand { get; }
 
         public RelayCommand SelectModeCommand { get; }
 
@@ -211,6 +242,25 @@ namespace GraphDigitizer.ViewModels
         public event EventHandler ZoomModeEnter;
 
         public event EventHandler ZoomModeLeave;
+
+        public static BitmapImage ImageFromBuffer(byte[] bytes)
+        {
+            var stream = new System.IO.MemoryStream(bytes);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.StreamSource = stream;
+            image.EndInit();
+            return image;
+        }
+
+        public static byte[] BufferFromImage(BitmapImage imageSource)
+        {
+            var ms = new System.IO.MemoryStream();
+            var enc = new PngBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(imageSource));
+            enc.Save(ms);
+            return ms.ToArray();
+        }
 
         private void ExecuteSelectModeCommand()
         {
@@ -516,6 +566,172 @@ namespace GraphDigitizer.ViewModels
             {
                 Data[i].Index = i + 1;
             }
+        }
+
+        private void ExecuteSaveCommand()
+        {
+            var sfd = new SaveFileDialog
+            {
+                FileName = "",
+                Filter = "Text files|*.txt|CSV files|*.csv|Graph Digitizer Files|*.gdf",
+            };
+
+            if (sfd.ShowDialog() != true)
+            {
+                return;
+            }
+
+            switch (sfd.FilterIndex)
+            {
+                case 1:
+                    using (var sw = new System.IO.StreamWriter(sfd.OpenFile()))
+                    {
+                        sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
+                        sw.WriteLine(new string('-', 45));
+                        foreach (var p in this.Data)
+                        {
+                            sw.WriteLine("{0,-22}{1,-22}", p.Transformed.X, p.Transformed.Y);
+                        }
+
+                        sw.Close();
+                    }
+                    break;
+                case 2:
+                    using (var sw = new System.IO.StreamWriter(sfd.OpenFile()))
+                    {
+                        var sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
+                        sw.WriteLine("X Value" + sep + "Y Value");
+                        foreach (var p in this.Data)
+                        {
+                            sw.WriteLine(p.Transformed.X + sep + p.Transformed.Y);
+                        }
+
+                        sw.Close();
+                    }
+                    break;
+                case 3:
+                    using (var bw = new System.IO.BinaryWriter(sfd.OpenFile()))
+                    {
+                        var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
+                        System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
+
+                        if (!(this.TargetImage?.Source is BitmapImage bitmapImage))
+                        {
+                            MessageBox.Show(
+                                "This file format does not support the type of image you are using.",
+                                "Unsupported Image Type",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                            return;
+                        }
+
+                        var bmp = BufferFromImage(bitmapImage);
+                        bw.Write(bmp.Length);
+                        bw.Write(bmp);
+
+                        //Proportion and zoom
+                        bw.Write(this.CanvasFactor);
+                        bw.Write(this.Zoom);
+
+                        //X axis
+                        bw.Write(Axes.X.Minimum.X); bw.Write(Axes.X.Minimum.Y); bw.Write(Axes.X.MinimumValue);
+                        bw.Write(Axes.X.Maximum.X); bw.Write(Axes.X.Maximum.Y); bw.Write(Axes.X.MaximumValue);
+                        bw.Write(Axes.XLog);
+
+                        //Y axis
+                        bw.Write(Axes.Y.Minimum.X); bw.Write(Axes.Y.Minimum.Y); bw.Write(Axes.Y.MinimumValue);
+                        bw.Write(Axes.Y.Maximum.X); bw.Write(Axes.Y.Maximum.Y); bw.Write(Axes.Y.MaximumValue);
+                        bw.Write(Axes.YLog);
+
+                        //Points
+                        bw.Write(this.Data.Count);
+                        foreach (var p in this.Data)
+                        {
+                            bw.Write(p.Transformed.X);
+                            bw.Write(p.Transformed.Y);
+                            bw.Write(p.Relative.X);
+                            bw.Write(p.Relative.Y);
+                        }
+
+                        bw.Close();
+                        System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
+                    }
+                    break;
+            }
+        }
+
+        public void SelectPoint(RelativePoint relative)
+        {
+            if (State == State.Axes)
+            {
+                switch (Axes.Status)
+                {
+                    case 0:
+                        Axes.X.Minimum = relative;
+                        break;
+                    case 1:
+                        Axes.X.Maximum = relative;
+                        break;
+                    case 2:
+                        Axes.Y.Minimum = relative;
+                        break;
+                    case 3:
+                        Axes.Y.Maximum = relative;
+                        break;
+                }
+                Axes.Status++;
+                if (Axes.Status == 4)
+                    SelectAxesProp();
+            }
+            else if (State == State.Points)
+            {
+                AddPoint(relative);
+            }
+
+            SetToolTip();
+        }
+
+        private void ExecuteAxesCommand()
+        {
+            State = State.Axes;
+            Axes.Status = 0;
+            SetToolTip();
+        }
+
+        private void ExecuteCopyCommand()
+        {
+            var res = string.Join(Environment.NewLine, Data.Select(x => $"{x.Transformed.X}\t{x.Transformed.Y}"));
+            Clipboard.SetText(res);
+        }
+
+        private void ExecuteClearDataCommand()
+        {
+            Data.Clear();
+        }
+
+        private void ExecuteZoomInCommand()
+        {
+            if (Zoom < 16) Zoom *= 2;
+        }
+
+        private void ExecuteZoomOutCommand()
+        {
+            if (Zoom > 1) Zoom /= 2;
+        }
+
+        private void ExecuteEnlargeCommand()
+        {
+            CanvasFactor = Math.Min(30, CanvasFactor + 1);
+        }
+
+        private void ExecuteReduceCommand()
+        {
+            CanvasFactor = Math.Max(-30, CanvasFactor - 1);
+        }
+
+        private void ExecuteRestoreCommand()
+        {
+            CanvasFactor = 0;
         }
     }
 }

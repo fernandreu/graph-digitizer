@@ -186,13 +186,13 @@
                 <Button Command="{Binding ClipboardLoadCommand}" ToolTip="Load an image from the clipboard">
                     <Image Source="/Resources/Clipboard.png"/>
                 </Button>
-                <Button Click="OnSaveClicked" ToolTip="Save the current data in a file">
+                <Button Command="{Binding SaveCommand}" ToolTip="Save the current data in a file">
                     <Image Source="/Resources/Save.png"/>
                 </Button>
-                <Button Click="btnAxes_Click" ToolTip="Set the image axes">
+                <Button Command="{Binding AxesCommand}" ToolTip="Set the image axes">
                     <Image Source="/Resources/Axes.png"/>
                 </Button>
-                <Button Click="btnAxesProp_Click" ToolTip="Set the properties of the axes">
+                <Button Command="{Binding AxesPropCommand}" ToolTip="Set the properties of the axes">
                     <Image Source="/Resources/Properties.png"/>
                 </Button>
                 <Button Command="{Binding SelectModeCommand}" ToolTip="Selection tool (Hotkey: 1)">
@@ -201,25 +201,25 @@
                 <Button Command="{Binding PointsModeCommand}" ToolTip="Pick point tool (Hotkey: 2)">
                     <Image Source="/Resources/Crosshair.png"/>
                 </Button>
-                <Button Click="OnCopyClicked" ToolTip="Copy all the points to clipboard">
+                <Button Command="{Binding CopyCommand}" ToolTip="Copy all the points to clipboard">
                     <Image Source="/Resources/Copy.png"/>
                 </Button>
-                <Button Click="OnDeletePointsClicked" ToolTip="Delete all the selected points">
+                <Button Command="{Binding ClearDataCommand}" ToolTip="Delete all the selected points">
                     <Image Source="/Resources/Delete.png"/>
                 </Button>
-                <Button Click="OnZoomInClicked" ToolTip="Increase the amount of zoom in the side image">
+                <Button Command="{Binding ZoomInCommand}" ToolTip="Increase the amount of zoom in the side image">
                     <Image Source="/Resources/ZoomIn.png"/>
                 </Button>
-                <Button Click="OnZoomOutClicked" ToolTip="Decrease the amount of zoom in the side image">
+                <Button Command="{Binding ZoomOutCommand}" ToolTip="Decrease the amount of zoom in the side image">
                     <Image Source="/Resources/ZoomOut.png"/>
                 </Button>
-                <Button Click="OnEnlargeClicked" ToolTip="Enlarge the main image">
+                <Button Command="{Binding EnlargeCommand}" ToolTip="Enlarge the main image">
                     <Image Source="/Resources/Enlarge.png"/>
                 </Button>
-                <Button Click="OnReduceClicked" ToolTip="Reduce the main image">
+                <Button Command="{Binding ReduceCommand}" ToolTip="Reduce the main image">
                     <Image Source="/Resources/Reduce.png"/>
                 </Button>
-                <Button Click="OnRestoreClicked" ToolTip="Restore the main image size">
+                <Button Command="{Binding RestoreCommand}" ToolTip="Restore the main image size">
                     <Image Source="/Resources/OriginalSize.png"/>
                 </Button>
                 <Button Command="{Binding ShowHelpCommand}" ToolTip="Show the about dialog">
@@ -240,8 +240,7 @@
             CanUserResizeRows="False" 
             CanUserResizeColumns="False" 
             CanUserReorderColumns="False" 
-            FontSize="11" 
-            SelectionChanged="OnTableSelectionChanged" 
+            FontSize="11"
             IsReadOnly="True" 
             Background="#FFE9EFF5" 
             HeadersVisibility="Column" 
@@ -278,7 +277,7 @@
             <ItemsControl 
                 x:Name="DataCanvas"
                 MouseMove="imgGraph_MouseMove"
-                MouseDown="imgGraph_MouseDown" 
+                MouseDown="GraphMouseDownEventHandler" 
                 MouseEnter="MouseEnterEventHandler"
                 MouseLeave="MouseLeaveEventHandler"
                 Cursor="{Binding CanvasCursor}" 
@@ -318,7 +317,7 @@
             Grid.Column="0" 
             x:Name="ZoomCanvas" 
             ClipToBounds="True" 
-            MouseMove="cnvZoom_MouseMove" 
+            MouseMove="ZoomMouseMoveEventHandler" 
             Cursor="Cross">
             <Image 
                 x:Name="ZoomImage"
@@ -326,7 +325,7 @@
                 Width="{Binding TargetImage.Width}"
                 Height="{Binding TargetImage.Height}" 
                 Stretch="Fill" 
-                MouseDown="imgZoom_MouseDown">
+                MouseDown="ZoomMouseDownEventHandler">
                 <Canvas.Left>
                     <MultiBinding Converter="{StaticResource ZoomPositionConverter}">
                         <Binding Path="MousePosition.X"/>

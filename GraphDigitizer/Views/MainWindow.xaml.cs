@@ -69,18 +69,18 @@ namespace GraphDigitizer.Views
 
             if (viewModel.State == State.Axes)
             {
-                if (Axes.Status == 1)
+                if (viewModel.Axes.Status == 1)
                 {
-                    Axes.X.Maximum = viewModel.MousePosition;
+                    viewModel.Axes.X.Maximum = viewModel.MousePosition;
                 }
-                else if (Axes.Status == 3)
+                else if (viewModel.Axes.Status == 3)
                 {
-                    Axes.Y.Maximum = viewModel.MousePosition;
+                    viewModel.Axes.Y.Maximum = viewModel.MousePosition;
                 }
             }
         }
 
-        private void cnvZoom_MouseMove(object sender, MouseEventArgs e)
+        private void ZoomMouseMoveEventHandler(object sender, MouseEventArgs e)
         {
             var p = e.GetPosition(ZoomImage);
             viewModel.UpdateStatusCoords(new RelativePoint(p.X / ZoomImage.ActualWidth * viewModel.TargetImage.Width, p.Y / ZoomImage.ActualHeight * viewModel.TargetImage.Height));
@@ -115,36 +115,6 @@ namespace GraphDigitizer.Views
             }
         }
 
-        private void SelectPoint(RelativePoint relative)
-        {
-            if (viewModel.State == State.Axes)
-            {
-                switch (Axes.Status)
-                {
-                    case 0:
-                        Axes.X.Minimum = relative;
-                        break;
-                    case 1:
-                        Axes.X.Maximum = relative;
-                        break;
-                    case 2:
-                        Axes.Y.Minimum = relative;
-                        break;
-                    case 3:
-                        Axes.Y.Maximum = relative;
-                        break;
-                }
-                Axes.Status++;
-                if (Axes.Status == 4)
-                    this.viewModel.SelectAxesProp();
-            }
-            else if (viewModel.State == State.Points)
-            {
-                this.viewModel.AddPoint(relative);
-            }
-            SetToolTip();
-        }
-
         private void PointMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!((sender as FrameworkElement)?.DataContext is DataPoint point))
@@ -160,7 +130,7 @@ namespace GraphDigitizer.Views
             viewModel.DeleteSelection();
         }
 
-        private void imgGraph_MouseDown(object sender, MouseButtonEventArgs e)
+        private void GraphMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(this.DataCanvas);
             if (viewModel.State == State.Select)
@@ -168,7 +138,12 @@ namespace GraphDigitizer.Views
                 if (e.ChangedButton != MouseButton.Left) return;
                 selecting = true;
                 selFirstPos = p;
-                selRect = new Rectangle() { Stroke = new SolidColorBrush(new Color() { ScA = 0.7f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), Fill = new SolidColorBrush(new Color() { ScA = 0.2f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), StrokeThickness = 1.0 };
+                selRect = new Rectangle
+                {
+                    Stroke = new SolidColorBrush(new Color { ScA = 0.7f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), 
+                    Fill = new SolidColorBrush(new Color { ScA = 0.2f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), 
+                    StrokeThickness = 1.0
+                };
 
                 // TODO
                 //this.cnvGraph.Children.Add(this.selRect);
@@ -177,68 +152,20 @@ namespace GraphDigitizer.Views
                 //Canvas.SetTop(this.selRect, this.selFirstPos.Y);
             }
             else
-                this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(this.DataCanvas.ActualWidth, this.DataCanvas.ActualHeight));
+                this.viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(this.DataCanvas.ActualWidth, this.DataCanvas.ActualHeight));
         }
 
-        private void imgZoom_MouseDown(object sender, MouseButtonEventArgs e)
+        private void ZoomMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(ZoomImage);
-            this.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(ZoomImage.ActualWidth, ZoomImage.ActualHeight));
-        }
-
-        private void btnAxes_Click(object sender, RoutedEventArgs e)
-        {
-            viewModel.State = State.Axes;
-            Axes.Status = 0;
-            SetToolTip();
-        }
-
-        private void btnAxesProp_Click(object sender, RoutedEventArgs e)
-        {
-            this.viewModel.SelectAxesProp();
-        }
-
-        private void OnDeletePointsClicked(object sender, RoutedEventArgs e)
-        {
-            this.viewModel.Data.Clear();
-        }
-
-        private void OnZoomInClicked(object sender, RoutedEventArgs e)
-        {
-            if (this.Zoom < 16) this.Zoom *= 2;
-        }
-
-        private void OnZoomOutClicked(object sender, RoutedEventArgs e)
-        {
-            if (this.Zoom > 1) this.Zoom /= 2;
-        }
-
-        private void OnEnlargeClicked(object sender, RoutedEventArgs e)
-        {
-            this.viewModel.CanvasFactor = Math.Min(30, this.viewModel.CanvasFactor + 1);
-        }
-
-        private void OnReduceClicked(object sender, RoutedEventArgs e)
-        {
-            this.viewModel.CanvasFactor = Math.Max(-30, this.viewModel.CanvasFactor - 1);
-        }
-
-        private void OnRestoreClicked(object sender, RoutedEventArgs e)
-        {
-            this.viewModel.CanvasFactor = 0;
+            this.viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(ZoomImage.ActualWidth, ZoomImage.ActualHeight));
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
-            Properties.Settings.Default.Zoom = this.Zoom;
+            Properties.Settings.Default.Zoom = this.viewModel.Zoom;
             Properties.Settings.Default.Proportion = this.viewModel.CanvasFactor;
             Properties.Settings.Default.Save();
-        }
-
-        private void OnCopyClicked(object sender, RoutedEventArgs e)
-        {
-            var res = string.Join(Environment.NewLine, this.viewModel.Data.Select(x => $"{x.Transformed.X}\t{x.Transformed.Y}"));
-            Clipboard.SetText(res);
         }
 
         private void OnWindowPreviewMouseUp(object sender, MouseButtonEventArgs e)
@@ -274,142 +201,6 @@ namespace GraphDigitizer.Views
             // TODO
             //this.cnvGraph.Children.Remove(this.selRect);
             selecting = false;
-        }
-
-        private void OnSaveClicked(object sender, RoutedEventArgs e)
-        {
-            var sfd = new SaveFileDialog
-            {
-                FileName = "",
-                Filter = "Text files|*.txt|CSV files|*.csv|Graph Digitizer Files|*.gdf",
-            };
-
-            if (sfd.ShowDialog() != true)
-            {
-                return;
-            }
-
-            switch (sfd.FilterIndex)
-            {
-                case 1:
-                    using (var sw = new System.IO.StreamWriter(sfd.OpenFile()))
-                    {
-                        sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
-                        sw.WriteLine(new string('-', 45));
-                        foreach (var p in this.viewModel.Data)
-                        {
-                            sw.WriteLine("{0,-22}{1,-22}", p.Transformed.X, p.Transformed.Y);
-                        }
-
-                        sw.Close();
-                    }
-                    break;
-                case 2:
-                    using (var sw = new System.IO.StreamWriter(sfd.OpenFile()))
-                    {
-                        var sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
-                        sw.WriteLine("X Value" + sep + "Y Value");
-                        foreach (var p in this.viewModel.Data)
-                        {
-                            sw.WriteLine(p.Transformed.X + sep + p.Transformed.Y);
-                        }
-
-                        sw.Close();
-                    }
-                    break;
-                case 3:
-                    using (var bw = new System.IO.BinaryWriter(sfd.OpenFile()))
-                    {
-                        var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
-                        System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
-
-                        if (!(this.viewModel.TargetImage?.Source is BitmapImage bitmapImage))
-                        {
-                            MessageBox.Show(
-                                "This file format does not support the type of image you are using.",
-                                "Unsupported Image Type",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                            return;
-                        }
-
-                        var bmp = this.BufferFromImage(bitmapImage);
-                        bw.Write(bmp.Length);
-                        bw.Write(bmp);
-
-                        //Proportion and zoom
-                        bw.Write(this.viewModel.CanvasFactor);
-                        bw.Write(this.Zoom);
-
-                        //X axis
-                        bw.Write(Axes.X.Minimum.X); bw.Write(Axes.X.Minimum.Y); bw.Write(Axes.X.MinimumValue);
-                        bw.Write(Axes.X.Maximum.X); bw.Write(Axes.X.Maximum.Y); bw.Write(Axes.X.MaximumValue);
-                        bw.Write(Axes.XLog);
-
-                        //Y axis
-                        bw.Write(Axes.Y.Minimum.X); bw.Write(Axes.Y.Minimum.Y); bw.Write(Axes.Y.MinimumValue);
-                        bw.Write(Axes.Y.Maximum.X); bw.Write(Axes.Y.Maximum.Y); bw.Write(Axes.Y.MaximumValue);
-                        bw.Write(Axes.YLog);
-
-                        //Points
-                        bw.Write(this.viewModel.Data.Count);
-                        foreach (var p in this.viewModel.Data)
-                        {
-                            bw.Write(p.Transformed.X);
-                            bw.Write(p.Transformed.Y);
-                            bw.Write(p.Relative.X);
-                            bw.Write(p.Relative.Y);
-                        }
-
-                        bw.Close();
-                        System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
-                    }
-                    break;
-            }
-        }
-
-        public BitmapImage ImageFromBuffer(byte[] bytes)
-        {
-            var stream = new System.IO.MemoryStream(bytes);
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.StreamSource = stream;
-            image.EndInit();
-            return image;
-        }
-
-        public byte[] BufferFromImage(BitmapImage imageSource)
-        {
-            var ms = new System.IO.MemoryStream();
-            var enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(imageSource));
-            enc.Save(ms);
-            return ms.ToArray();
-        }
-
-        // TODO: All code below should be removed once MVVM is fully implemented
-
-        private int Zoom
-        {
-            get => viewModel.Zoom;
-            set => viewModel.Zoom = value;
-        }
-
-        private Axes Axes
-        {
-            get => viewModel.Axes;
-            set => viewModel.Axes = value;
-        }
-
-        private void SetToolTip()
-        {
-            // TODO: Make SetToolTip() private after removing this
-            viewModel.SetToolTip();
-        }
-
-        private void OnTableSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // TODO: Mark those points as selected
         }
 
         private void MouseEnterEventHandler(object sender, MouseEventArgs e)
