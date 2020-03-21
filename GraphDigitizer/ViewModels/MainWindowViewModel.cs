@@ -23,28 +23,28 @@ namespace GraphDigitizer.ViewModels
         {
             this.dialogService = dialogService;
 
-            this.SaveCommand = new RelayCommand(this.ExecuteSaveCommand);
-            this.AxesCommand = new RelayCommand(this.ExecuteAxesCommand);
-            this.CopyCommand = new RelayCommand(this.ExecuteCopyCommand);
-            this.ZoomInCommand = new RelayCommand(this.ExecuteZoomInCommand);
-            this.ZoomOutCommand = new RelayCommand(this.ExecuteZoomOutCommand);
-            this.EnlargeCommand = new RelayCommand(this.ExecuteEnlargeCommand);
-            this.ReduceCommand = new RelayCommand(this.ExecuteReduceCommand);
-            this.RestoreCommand = new RelayCommand(this.ExecuteRestoreCommand);
-            this.ClearDataCommand = new RelayCommand(this.ExecuteClearDataCommand);
-            this.AxesPropCommand = new RelayCommand(this.SelectAxesProp);
-            this.SelectModeCommand = new RelayCommand(this.ExecuteSelectModeCommand);
-            this.PointsModeCommand = new RelayCommand(this.ExecutePointsModeCommand);
-            this.OpenFileCommand = new RelayCommand(this.ExecuteOpenFileCommand);
-            this.ClipboardLoadCommand = new RelayCommand(this.OpenFromClipboard);
-            this.ShowHelpCommand = new RelayCommand(this.ExecuteShowHelpCommand);
-            this.ZoomModeEnterCommand = new RelayCommand(this.ExecuteZoomModeEnterCommand);
-            this.ZoomModeLeaveCommand = new RelayCommand(this.ExecuteZoomModeLeaveCommand);
-            this.KeyUpCommand = new RelayCommand<KeyEventArgs>(this.ExecuteKeyUpCommand);
+            SaveCommand = new RelayCommand(ExecuteSaveCommand);
+            AxesCommand = new RelayCommand(ExecuteAxesCommand);
+            CopyCommand = new RelayCommand(ExecuteCopyCommand);
+            ZoomInCommand = new RelayCommand(ExecuteZoomInCommand);
+            ZoomOutCommand = new RelayCommand(ExecuteZoomOutCommand);
+            EnlargeCommand = new RelayCommand(ExecuteEnlargeCommand);
+            ReduceCommand = new RelayCommand(ExecuteReduceCommand);
+            RestoreCommand = new RelayCommand(ExecuteRestoreCommand);
+            ClearDataCommand = new RelayCommand(ExecuteClearDataCommand);
+            AxesPropCommand = new RelayCommand(SelectAxesProp);
+            SelectModeCommand = new RelayCommand(ExecuteSelectModeCommand);
+            PointsModeCommand = new RelayCommand(ExecutePointsModeCommand);
+            OpenFileCommand = new RelayCommand(ExecuteOpenFileCommand);
+            ClipboardLoadCommand = new RelayCommand(OpenFromClipboard);
+            ShowHelpCommand = new RelayCommand(ExecuteShowHelpCommand);
+            ZoomModeEnterCommand = new RelayCommand(ExecuteZoomModeEnterCommand);
+            ZoomModeLeaveCommand = new RelayCommand(ExecuteZoomModeLeaveCommand);
+            KeyUpCommand = new RelayCommand<KeyEventArgs>(ExecuteKeyUpCommand);
 
-            this.Data.CollectionChanged += this.OnDataChanged;
-            this.SelectedData.CollectionChanged += this.OnSelectedDataChanged;
-            this.Axes = new Axes();
+            Data.CollectionChanged += OnDataChanged;
+            SelectedData.CollectionChanged += OnSelectedDataChanged;
+            Axes = new Axes();
         }
 
         public RelayCommand SaveCommand { get; }
@@ -87,23 +87,23 @@ namespace GraphDigitizer.ViewModels
 
         public TargetImage TargetImage
         {
-            get => this.targetImage;
+            get => targetImage;
             set
             {
-                var previous = this.targetImage;
-                if (!this.Set(ref this.targetImage, value))
+                var previous = targetImage;
+                if (!Set(ref targetImage, value))
                 {
                     return;
                 }
 
                 if (previous != null)
                 {
-                    this.CanvasElements.Remove(previous);
+                    CanvasElements.Remove(previous);
                 }
 
                 if (value != null)
                 {
-                    this.CanvasElements.Insert(0, value);
+                    CanvasElements.Insert(0, value);
                 }
             }
         }
@@ -118,26 +118,26 @@ namespace GraphDigitizer.ViewModels
 
         public Axes Axes
         {
-            get => this.axes;
+            get => axes;
             set
             {
-                var previous = this.axes;
-                if (!this.Set(ref this.axes, value))
+                var previous = axes;
+                if (!Set(ref axes, value))
                 {
                     return;
                 }
 
                 if (previous != null)
                 {
-                    this.CanvasElements.Remove(previous.X);
-                    this.CanvasElements.Remove(previous.Y);
+                    CanvasElements.Remove(previous.X);
+                    CanvasElements.Remove(previous.Y);
                 }
 
                 if (value != null)
                 {
-                    var offset = this.CanvasElements.Count > 0 ? 1 : 0;
-                    this.CanvasElements.Insert(offset, value.X);
-                    this.CanvasElements.Insert(offset + 1, value.Y);
+                    var offset = CanvasElements.Count > 0 ? 1 : 0;
+                    CanvasElements.Insert(offset, value.X);
+                    CanvasElements.Insert(offset + 1, value.Y);
                 }
             }
         }
@@ -147,15 +147,15 @@ namespace GraphDigitizer.ViewModels
         // The position of the mouse relative to the image's size, from 0 to 1
         public RelativePoint MousePosition
         {
-            get => this.mousePosition;
+            get => mousePosition;
             set
             {
-                if (!this.Set(ref this.mousePosition, value))
+                if (!Set(ref mousePosition, value))
                 {
                     return;
                 }
 
-                this.UpdateStatusCoords();
+                UpdateStatusCoords();
             }
         }
 
@@ -163,24 +163,24 @@ namespace GraphDigitizer.ViewModels
 
         public int Zoom
         {
-            get => this.zoom;
-            set => this.Set(ref this.zoom, value);
+            get => zoom;
+            set => Set(ref zoom, value);
         }
 
         private int canvasFactor;
 
         public int CanvasFactor
         {
-            get => this.canvasFactor;
-            set => this.Set(ref this.canvasFactor, value);
+            get => canvasFactor;
+            set => Set(ref canvasFactor, value);
         }
 
         private State state = State.Idle;
 
         public State State
         {
-            get => this.state;
-            set => this.Set(ref this.state, value);
+            get => state;
+            set => Set(ref state, value);
         }
 
         private string statusText = string.Empty;
@@ -190,24 +190,24 @@ namespace GraphDigitizer.ViewModels
         /// </summary>
         public string StatusText
         {
-            get => this.statusText;
-            set => this.Set(ref this.statusText, value);
+            get => statusText;
+            set => Set(ref statusText, value);
         }
 
         private TransformedPoint realMousePosition;
 
         public TransformedPoint RealMousePosition
         {
-            get => this.realMousePosition;
-            set => this.Set(ref this.realMousePosition, value);
+            get => realMousePosition;
+            set => Set(ref realMousePosition, value);
         }
 
         private AbsolutePoint screenMousePosition;
 
         public AbsolutePoint ScreenMousePosition
         {
-            get => this.screenMousePosition;
-            set => this.Set(ref this.screenMousePosition, value);
+            get => screenMousePosition;
+            set => Set(ref screenMousePosition, value);
         }
 
         private Cursor canvasCursor = Cursors.Cross;
@@ -217,24 +217,24 @@ namespace GraphDigitizer.ViewModels
         /// </summary>
         public Cursor CanvasCursor
         {
-            get => this.canvasCursor;
-            set => this.Set(ref this.canvasCursor, value);
+            get => canvasCursor;
+            set => Set(ref canvasCursor, value);
         }
 
         private bool isMouseOverCanvas;
 
         public bool IsMouseOverCanvas
         {
-            get => this.isMouseOverCanvas;
-            set => this.Set(ref this.isMouseOverCanvas, value);
+            get => isMouseOverCanvas;
+            set => Set(ref isMouseOverCanvas, value);
         }
 
         private bool isInZoomMode;
 
         public bool IsInZoomMode
         {
-            get => this.isInZoomMode;
-            set => this.Set(ref this.isInZoomMode, value);
+            get => isInZoomMode;
+            set => Set(ref isInZoomMode, value);
         }
 
         public event EventHandler<FileEventArgs> OpeningFile;
@@ -264,57 +264,57 @@ namespace GraphDigitizer.ViewModels
 
         private void ExecuteSelectModeCommand()
         {
-            this.State = State.Select;
-            this.SetToolTip();
-            this.CanvasCursor = Cursors.Arrow;
+            State = State.Select;
+            SetToolTip();
+            CanvasCursor = Cursors.Arrow;
         }
 
         private void ExecutePointsModeCommand()
         {
-            this.State = State.Points;
-            this.SetToolTip();
-            this.CanvasCursor = Cursors.Cross;
+            State = State.Points;
+            SetToolTip();
+            CanvasCursor = Cursors.Cross;
         }
 
         private void ExecuteOpenFileCommand()
         {
             var args = new FileEventArgs();
-            this.OpeningFile?.Invoke(this, args);
+            OpeningFile?.Invoke(this, args);
             if (string.IsNullOrWhiteSpace(args.File))
             {
                 return;
             }
 
-            this.OpenFile(args.File);
+            OpenFile(args.File);
         }
 
         private void ExecuteShowHelpCommand()
         {
-            this.dialogService.ShowDialog<AboutDialogViewModel>();
+            dialogService.ShowDialog<AboutDialogViewModel>();
         }
 
         private void ExecuteZoomModeEnterCommand()
         {
-            if (!this.IsMouseOverCanvas || this.IsInZoomMode)
+            if (!IsMouseOverCanvas || IsInZoomMode)
             {
                 return;
             }
 
-            this.ZoomModeEnter?.Invoke(this, EventArgs.Empty);
-            this.IsInZoomMode = true;
+            ZoomModeEnter?.Invoke(this, EventArgs.Empty);
+            IsInZoomMode = true;
         }
 
         private void ExecuteZoomModeLeaveCommand()
         {
-            this.IsInZoomMode = false;
-            this.ZoomModeLeave?.Invoke(this, EventArgs.Empty);
+            IsInZoomMode = false;
+            ZoomModeLeave?.Invoke(this, EventArgs.Empty);
         }
 
         private void ExecuteKeyUpCommand(KeyEventArgs e)
         {
-            if (e.Key == Key.Z && this.IsInZoomMode)
+            if (e.Key == Key.Z && IsInZoomMode)
             {
-                this.ExecuteZoomModeLeaveCommand();
+                ExecuteZoomModeLeaveCommand();
             }
         }
 
@@ -327,40 +327,40 @@ namespace GraphDigitizer.ViewModels
             }
 
             var bmp = Clipboard.GetImage();
-            this.LoadBitmap(bmp);
+            LoadBitmap(bmp);
         }
 
         public void OpenFile(string path)
         {
             var bmp = new BitmapImage(new Uri(path));
-            this.LoadBitmap(bmp);
+            LoadBitmap(bmp);
         }
 
         private void LoadBitmap(BitmapSource bmp)
         {
             //Since everything will be deleted, there is no need for calling UpdateProportions(100.0)
-            this.CanvasFactor = 0;
+            CanvasFactor = 0;
 
-            this.TargetImage = new TargetImage
+            TargetImage = new TargetImage
             {
                 Source = bmp,
                 Width = bmp.PixelWidth,
                 Height = bmp.PixelHeight
             };
 
-            this.State = State.Axes;
-            this.Axes.Status = 0;
+            State = State.Axes;
+            Axes.Status = 0;
 
-            this.Data.Clear();
+            Data.Clear();
             Axes.X.Minimum.X = Axes.X.Minimum.Y = Axes.X.Maximum.X = Axes.X.Maximum.Y = Axes.Y.Minimum.X = Axes.Y.Minimum.Y = Axes.Y.Maximum.X = Axes.Y.Maximum.Y = double.NaN;
 
             SetToolTip();
-            this.CanvasCursor = Cursors.Cross;
+            CanvasCursor = Cursors.Cross;
         }
 
         public TransformedPoint GetRealCoords(AbsolutePoint absolute)
         {
-            return this.GetRealCoords(absolute.ToRelative(this.TargetImage.Width, this.TargetImage.Height, this.CanvasFactor));
+            return GetRealCoords(absolute.ToRelative(TargetImage.Width, TargetImage.Height, CanvasFactor));
         }
 
         public TransformedPoint GetRealCoords(RelativePoint relative)
@@ -395,63 +395,63 @@ namespace GraphDigitizer.ViewModels
         {
             if (point == null)
             {
-                point = this.MousePosition;
+                point = MousePosition;
             }
 
-            this.ScreenMousePosition = point.ToAbsolute(this.TargetImage.Width, this.TargetImage.Height, this.CanvasFactor);
-            this.RealMousePosition = GetRealCoords(ScreenMousePosition);
+            ScreenMousePosition = point.ToAbsolute(TargetImage.Width, TargetImage.Height, CanvasFactor);
+            RealMousePosition = GetRealCoords(ScreenMousePosition);
         }
 
         public void SetToolTip()
         {
-            switch (this.State)
+            switch (State)
             {
                 case State.Idle:
-                    this.StatusText = "Load an image with the button above";
+                    StatusText = "Load an image with the button above";
                     break;
                 case State.Axes:
-                    switch (this.Axes.Status)
+                    switch (Axes.Status)
                     {
                         case 0:
-                            this.StatusText = "Select the minor X value of the axes";
+                            StatusText = "Select the minor X value of the axes";
                             break;
                         case 1:
-                            this.StatusText = "Select the major X value of the axes";
+                            StatusText = "Select the major X value of the axes";
                             break;
                         case 2:
-                            this.StatusText = "Select the minor Y value of the axes";
+                            StatusText = "Select the minor Y value of the axes";
                             break;
                         case 3:
-                            this.StatusText = "Select the major Y value of the axes";
+                            StatusText = "Select the major Y value of the axes";
                             break;
                     }
                     break;
                 case State.Points:
-                    this.StatusText = "Select any point you want to add to the data";
+                    StatusText = "Select any point you want to add to the data";
                     break;
                 case State.Select:
-                    this.StatusText = "Click on any point to select it";
+                    StatusText = "Click on any point to select it";
                     break;
                 default:
-                    this.StatusText = string.Empty;
+                    StatusText = string.Empty;
                     break;
             }
         }
         
         public void AddPoint(RelativePoint position)
         {
-            var transformed = this.GetRealCoords(position);
-            var p = new DataPoint(transformed, position, this.Data.Count + 1);
-            this.Data.Add(p);
+            var transformed = GetRealCoords(position);
+            var p = new DataPoint(transformed, position, Data.Count + 1);
+            Data.Add(p);
         }
 
         private void OnDataChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
-                foreach (var item in this.CanvasElements.OfType<DataPoint>().ToList())
+                foreach (var item in CanvasElements.OfType<DataPoint>().ToList())
                 {
-                    this.CanvasElements.Remove(item);
+                    CanvasElements.Remove(item);
                 }
 
                 return;
@@ -461,7 +461,7 @@ namespace GraphDigitizer.ViewModels
             {
                 foreach (var item in e.OldItems.OfType<DataPoint>())
                 {
-                    this.CanvasElements.Remove(item);
+                    CanvasElements.Remove(item);
                 }
             }
 
@@ -470,7 +470,7 @@ namespace GraphDigitizer.ViewModels
             {
                 foreach (var item in e.NewItems.OfType<DataPoint>())
                 {
-                    this.CanvasElements.Add(item);
+                    CanvasElements.Add(item);
                 }
             }
         }
@@ -479,7 +479,7 @@ namespace GraphDigitizer.ViewModels
         {
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
-                foreach (var item in this.Data)
+                foreach (var item in Data)
                 {
                     item.IsSelected = false;
                 }
@@ -506,10 +506,10 @@ namespace GraphDigitizer.ViewModels
 
         public void SelectAxesProp()
         {
-            if (this.IsInZoomMode) this.ZoomModeLeaveCommand.Execute(null);
-            var ap = this.dialogService.ShowDialog<AxesPropViewModel, Axes>(Axes);
+            if (IsInZoomMode) ZoomModeLeaveCommand.Execute(null);
+            var ap = dialogService.ShowDialog<AxesPropViewModel, Axes>(Axes);
             Axes = ap.Axes;
-            this.State = State.Points;
+            State = State.Points;
         }
 
         public void HandlePointMouseDown(DataPoint point, MouseButton button)
@@ -588,7 +588,7 @@ namespace GraphDigitizer.ViewModels
                     {
                         sw.WriteLine("{0,-22}{1,-22}", "X Value", "Y Value");
                         sw.WriteLine(new string('-', 45));
-                        foreach (var p in this.Data)
+                        foreach (var p in Data)
                         {
                             sw.WriteLine("{0,-22}{1,-22}", p.Transformed.X, p.Transformed.Y);
                         }
@@ -601,7 +601,7 @@ namespace GraphDigitizer.ViewModels
                     {
                         var sep = System.Globalization.CultureInfo.CurrentUICulture.TextInfo.ListSeparator;
                         sw.WriteLine("X Value" + sep + "Y Value");
-                        foreach (var p in this.Data)
+                        foreach (var p in Data)
                         {
                             sw.WriteLine(p.Transformed.X + sep + p.Transformed.Y);
                         }
@@ -615,7 +615,7 @@ namespace GraphDigitizer.ViewModels
                         var ci = System.Threading.Thread.CurrentThread.CurrentUICulture;
                         System.Threading.Thread.CurrentThread.CurrentUICulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-GB");
 
-                        if (!(this.TargetImage?.Source is BitmapImage bitmapImage))
+                        if (!(TargetImage?.Source is BitmapImage bitmapImage))
                         {
                             MessageBox.Show(
                                 "This file format does not support the type of image you are using.",
@@ -630,8 +630,8 @@ namespace GraphDigitizer.ViewModels
                         bw.Write(bmp);
 
                         //Proportion and zoom
-                        bw.Write(this.CanvasFactor);
-                        bw.Write(this.Zoom);
+                        bw.Write(CanvasFactor);
+                        bw.Write(Zoom);
 
                         //X axis
                         bw.Write(Axes.X.Minimum.X); bw.Write(Axes.X.Minimum.Y); bw.Write(Axes.X.MinimumValue);
@@ -644,8 +644,8 @@ namespace GraphDigitizer.ViewModels
                         bw.Write(Axes.YLog);
 
                         //Points
-                        bw.Write(this.Data.Count);
-                        foreach (var p in this.Data)
+                        bw.Write(Data.Count);
+                        foreach (var p in Data)
                         {
                             bw.Write(p.Transformed.X);
                             bw.Write(p.Transformed.Y);

@@ -19,7 +19,7 @@ namespace GraphDigitizer.Converters
                 return null;
             }
 
-            return NumberUtils.FormatNum(d, this.ExponentialDecimals, this.FloatDecimals);
+            return NumberUtils.FormatNum(d, ExponentialDecimals, FloatDecimals);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

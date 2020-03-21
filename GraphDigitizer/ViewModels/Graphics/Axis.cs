@@ -9,16 +9,16 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public RelativePoint Minimum
         {
-            get => this.minimum;
-            set => this.Set(ref this.minimum, value);
+            get => minimum;
+            set => Set(ref minimum, value);
         }
 
         private RelativePoint maximum = new RelativePoint();
 
         public RelativePoint Maximum
         {
-            get => this.maximum;
-            set => this.Set(ref this.maximum, value);
+            get => maximum;
+            set => Set(ref maximum, value);
         }
 
         public bool IsXAxis { get; set; }
@@ -27,16 +27,16 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public double MinimumValue
         {
-            get => this.minimumValue;
-            set => this.Set(ref this.minimumValue, value);
+            get => minimumValue;
+            set => Set(ref minimumValue, value);
         }
 
         private double maximumValue = 1.0;
 
         public double MaximumValue
         {
-            get => this.maximumValue;
-            set => this.Set(ref this.maximumValue, value);
+            get => maximumValue;
+            set => Set(ref maximumValue, value);
         }
     }
 }

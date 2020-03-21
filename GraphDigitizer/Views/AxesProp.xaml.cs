@@ -15,30 +15,30 @@ namespace GraphDigitizer.Views
 
         public AxesProp()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
         {
             base.OnPropertyChanged(e);
 
-            if (e.Property != DataContextProperty || !(this.DataContext is AxesPropViewModel vm))
+            if (e.Property != DataContextProperty || !(DataContext is AxesPropViewModel vm))
             {
                 return;
             }
 
-            if (this.viewModel != null)
+            if (viewModel != null)
             {
-                this.viewModel.Closing -= this.ClosingEventHandler;
+                viewModel.Closing -= ClosingEventHandler;
             }
 
-            this.viewModel = vm;
-            vm.Closing += this.ClosingEventHandler;
+            viewModel = vm;
+            vm.Closing += ClosingEventHandler;
         }
 
         private void ClosingEventHandler(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void OnGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -50,15 +50,15 @@ namespace GraphDigitizer.Views
         {
             //Try to position the window leaving the mouse in a corner
             MouseUtils.GetCursorPos(out var p);
-            if (p.X + this.Width > SystemParameters.PrimaryScreenWidth)
-                this.Left = p.X - this.Width + 20;
+            if (p.X + Width > SystemParameters.PrimaryScreenWidth)
+                Left = p.X - Width + 20;
             else
-                this.Left = p.X;
+                Left = p.X;
 
-            if (p.Y + this.Height > SystemParameters.PrimaryScreenHeight - 50) // Threshold for the Windows taskbar
-                this.Top = p.Y - this.Height;
+            if (p.Y + Height > SystemParameters.PrimaryScreenHeight - 50) // Threshold for the Windows taskbar
+                Top = p.Y - Height;
             else
-                this.Top = p.Y;
+                Top = p.Y;
         }
     }
 }

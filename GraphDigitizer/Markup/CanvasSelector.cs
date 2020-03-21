@@ -18,17 +18,17 @@ namespace GraphDigitizer.Markup
         {
             if (item is DataPoint)
             {
-                return this.PointTemplate;
+                return PointTemplate;
             }
 
             if (item is TargetImage)
             {
-                return this.ImageTemplate;
+                return ImageTemplate;
             }
 
             if (item is Axis)
             {
-                return this.AxisTemplate;
+                return AxisTemplate;
             }
 
             return null;

@@ -8,16 +8,16 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public double X
         {
-            get => this.x;
-            set => this.Set(ref this.x, value);
+            get => x;
+            set => Set(ref x, value);
         }
 
         private double y;
 
         public double Y
         {
-            get => this.y;
-            set => this.Set(ref this.y, value);
+            get => y;
+            set => Set(ref y, value);
         }
     }
 }

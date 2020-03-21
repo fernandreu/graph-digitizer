@@ -15,8 +15,8 @@ namespace GraphDigitizer.ViewModels.Graphics
         /// </summary>
         public int Status
         {
-            get => this.status;
-            set => this.Set(ref this.status, value);
+            get => status;
+            set => Set(ref status, value);
         }
 
         private bool xLog;
@@ -26,8 +26,8 @@ namespace GraphDigitizer.ViewModels.Graphics
         /// </summary>
         public bool XLog
         {
-            get => this.xLog;
-            set => this.Set(ref this.xLog, value);
+            get => xLog;
+            set => Set(ref xLog, value);
         }
 
         private bool yLog;
@@ -37,8 +37,8 @@ namespace GraphDigitizer.ViewModels.Graphics
         /// </summary>
         public bool YLog
         {
-            get => this.yLog;
-            set => this.Set(ref this.yLog, value);
+            get => yLog;
+            set => Set(ref yLog, value);
         }
     }
 }

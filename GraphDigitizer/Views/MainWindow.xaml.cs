@@ -33,12 +33,12 @@ namespace GraphDigitizer.Views
             InitializeComponent();
 
             viewModel = (MainWindowViewModel) DataContext;
-            viewModel.ZoomModeEnter += (o, e) => this.ZoomModeIn();
-            viewModel.ZoomModeLeave += (o, e) => this.ZoomModeOut();
+            viewModel.ZoomModeEnter += (o, e) => ZoomModeIn();
+            viewModel.ZoomModeLeave += (o, e) => ZoomModeOut();
 
             if (System.IO.File.Exists(Properties.Settings.Default.LastFile))
             {
-                this.viewModel.OpenFile(Properties.Settings.Default.LastFile);
+                viewModel.OpenFile(Properties.Settings.Default.LastFile);
             }
         }
 
@@ -91,14 +91,14 @@ namespace GraphDigitizer.Views
             MouseUtils.GetCursorPos(out var prev);
             previousPosition.X = (double)prev.X;
             previousPosition.Y = (double)prev.Y;
-            var p = PointToScreen(this.ZoomCanvas.TransformToAncestor(this).Transform(new Point(0, 0)));
-            MouseUtils.SetCursorPos((int)(p.X + this.ZoomCanvas.ActualWidth / 2), (int)(p.Y + this.ZoomCanvas.ActualHeight / 2));
+            var p = PointToScreen(ZoomCanvas.TransformToAncestor(this).Transform(new Point(0, 0)));
+            MouseUtils.SetCursorPos((int)(p.X + ZoomCanvas.ActualWidth / 2), (int)(p.Y + ZoomCanvas.ActualHeight / 2));
 
             MouseUtils.Rect r;
             r.Top = (int)p.Y;
-            r.Bottom = (int)(p.Y + this.ZoomCanvas.ActualHeight);
+            r.Bottom = (int)(p.Y + ZoomCanvas.ActualHeight);
             r.Left = (int)p.X;
-            r.Right = (int)(p.X + this.ZoomCanvas.ActualWidth);
+            r.Right = (int)(p.X + ZoomCanvas.ActualWidth);
             MouseUtils.ClipCursor(ref r);
         }
 
@@ -132,7 +132,7 @@ namespace GraphDigitizer.Views
 
         private void GraphMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
-            var p = e.GetPosition(this.DataCanvas);
+            var p = e.GetPosition(DataCanvas);
             if (viewModel.State == State.Select)
             {
                 if (e.ChangedButton != MouseButton.Left) return;
@@ -152,19 +152,19 @@ namespace GraphDigitizer.Views
                 //Canvas.SetTop(this.selRect, this.selFirstPos.Y);
             }
             else
-                this.viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(this.DataCanvas.ActualWidth, this.DataCanvas.ActualHeight));
+                viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(DataCanvas.ActualWidth, DataCanvas.ActualHeight));
         }
 
         private void ZoomMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
             var p = e.GetPosition(ZoomImage);
-            this.viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(ZoomImage.ActualWidth, ZoomImage.ActualHeight));
+            viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(ZoomImage.ActualWidth, ZoomImage.ActualHeight));
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
-            Properties.Settings.Default.Zoom = this.viewModel.Zoom;
-            Properties.Settings.Default.Proportion = this.viewModel.CanvasFactor;
+            Properties.Settings.Default.Zoom = viewModel.Zoom;
+            Properties.Settings.Default.Proportion = viewModel.CanvasFactor;
             Properties.Settings.Default.Save();
         }
 
@@ -205,12 +205,12 @@ namespace GraphDigitizer.Views
 
         private void MouseEnterEventHandler(object sender, MouseEventArgs e)
         {
-            this.viewModel.IsMouseOverCanvas = true;
+            viewModel.IsMouseOverCanvas = true;
         }
 
         private void MouseLeaveEventHandler(object sender, MouseEventArgs e)
         {
-            this.viewModel.IsMouseOverCanvas = false;
+            viewModel.IsMouseOverCanvas = false;
         }
     }
 }

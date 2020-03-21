@@ -9,16 +9,16 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public RelativePoint Relative
         {
-            get => this.relative;
-            set => this.Set(ref this.relative, value);
+            get => relative;
+            set => Set(ref relative, value);
         }
 
         private TransformedPoint transformed;
 
         public TransformedPoint Transformed
         {
-            get => this.transformed;
-            set => this.Set(ref this.transformed, value);
+            get => transformed;
+            set => Set(ref transformed, value);
         }
 
         private int index;
@@ -28,23 +28,23 @@ namespace GraphDigitizer.ViewModels.Graphics
         /// </summary>
         public int Index
         {
-            get => this.index;
-            set => this.Set(ref this.index, value);
+            get => index;
+            set => Set(ref index, value);
         }
 
         private bool isSelected;
 
         public bool IsSelected
         {
-            get => this.isSelected;
-            set => this.Set(ref this.isSelected, value);
+            get => isSelected;
+            set => Set(ref isSelected, value);
         }
 
         public DataPoint(TransformedPoint transformed, RelativePoint relative, int pos)
         {
-            this.Transformed = transformed;
-            this.Relative = relative;
-            this.Index = pos;
+            Transformed = transformed;
+            Relative = relative;
+            Index = pos;
         }
     }
 }

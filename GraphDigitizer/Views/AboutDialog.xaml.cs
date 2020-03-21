@@ -9,7 +9,7 @@ namespace GraphDigitizer.Views
     {
         public AboutDialog()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
     }
 }

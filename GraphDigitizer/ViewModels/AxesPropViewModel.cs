@@ -14,13 +14,13 @@ namespace GraphDigitizer.ViewModels
 
         public Axes Axes
         {
-            get => this.axes;
-            set => this.Set(ref this.axes, value);
+            get => axes;
+            set => Set(ref axes, value);
         }
 
         public AxesPropViewModel()
         {
-            this.AcceptCommand = new RelayCommand(this.ExecuteAcceptCommand);
+            AcceptCommand = new RelayCommand(ExecuteAcceptCommand);
         }
 
         public event EventHandler Closing;
@@ -29,12 +29,12 @@ namespace GraphDigitizer.ViewModels
 
         private void ExecuteAcceptCommand()
         {
-            this.Closing?.Invoke(this, EventArgs.Empty);
+            Closing?.Invoke(this, EventArgs.Empty);
         }
 
         public void OnDataPassed(Axes data)
         {
-            this.Axes = data;
+            Axes = data;
         }
     }
 }

@@ -10,8 +10,8 @@ namespace GraphDigitizer.ViewModels
 
         public ImageSource Source
         {
-            get => this.source;
-            set => this.Set(ref this.source, value);
+            get => source;
+            set => Set(ref source, value);
         }
 
         public double Width { get; set; }

@@ -16,7 +16,7 @@ namespace GraphDigitizer.Converters
                 d = 0.0;
             }
 
-            return d + this.Offset;
+            return d + Offset;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -26,7 +26,7 @@ namespace GraphDigitizer.Converters
                 d = 0.0;
             }
 
-            return d - this.Offset;
+            return d - Offset;
         }
     }
 }

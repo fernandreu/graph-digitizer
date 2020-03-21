@@ -16,14 +16,14 @@ namespace GraphDigitizer.ViewModels.Graphics
 
         public RelativePoint(double x, double y)
         {
-            this.X = x;
-            this.Y = y;
+            X = x;
+            Y = y;
         }
 
         public AbsolutePoint ToAbsolute(double width, double height, int scaleFactor = 0)
         {
             var factor = Math.Pow(NumberUtils.ZoomFactor, scaleFactor);
-            return new AbsolutePoint(this.X * width * factor, this.Y * height * factor);
+            return new AbsolutePoint(X * width * factor, Y * height * factor);
         }
     }
 }
