@@ -131,11 +131,53 @@
             </Line>
         </DataTemplate>
 
+        <DataTemplate x:Key="SelectionRectangleDataTemplate">
+            <Rectangle
+                d:DataContext="{d:DesignInstance graphics:Rectangle}"
+                Stroke="#70F0"
+                Fill="#40F0"
+                StrokeThickness="1">
+                <Rectangle.Width>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Width"/>
+                        <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Rectangle.Width>
+                <Rectangle.Height>
+                    <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                        <Binding Path="Height"/>
+                        <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                        <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                    </MultiBinding>
+                </Rectangle.Height>
+                <Rectangle.RenderTransform>
+                    <TranslateTransform>
+                        <TranslateTransform.X>
+                            <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                                <Binding Path="Left"/>
+                                <Binding Path="DataContext.TargetImage.Width" ElementName="Window"/>
+                                <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                            </MultiBinding>
+                        </TranslateTransform.X>
+                        <TranslateTransform.Y>
+                            <MultiBinding Converter="{StaticResource MainPositionConverter}">
+                                <Binding Path="Top"/>
+                                <Binding Path="DataContext.TargetImage.Height" ElementName="Window"/>
+                                <Binding Path="DataContext.CanvasFactor" ElementName="Window" Converter="{StaticResource FactorConverter}"/>
+                            </MultiBinding>
+                        </TranslateTransform.Y>
+                    </TranslateTransform>
+                </Rectangle.RenderTransform>
+            </Rectangle>
+        </DataTemplate>
+        
         <markup:CanvasSelector 
             x:Key="CanvasSelector"
             ImageTemplate="{StaticResource ImageDataTemplate}"
             PointTemplate="{StaticResource PointDataTemplate}"
-            AxisTemplate="{StaticResource AxesDataTemplate}"/>
+            AxisTemplate="{StaticResource AxesDataTemplate}"
+            SelectionRectangleTemplate="{StaticResource SelectionRectangleDataTemplate}"/>
     </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Key="Z" Command="{Binding ZoomModeEnterCommand}"/>

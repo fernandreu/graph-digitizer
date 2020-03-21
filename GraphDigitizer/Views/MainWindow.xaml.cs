@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using GraphDigitizer.Events;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels;
 using GraphDigitizer.ViewModels.Graphics;
-using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace GraphDigitizer.Views
 {
@@ -26,7 +21,6 @@ namespace GraphDigitizer.Views
         //Selection rectangle
         private bool selecting = false; //Selection rectangle off
         private Point selFirstPos; //First rectangle corner
-        private Rectangle selRect; //SelectionRectangle
 
         public MainWindow()
         {
@@ -49,19 +43,19 @@ namespace GraphDigitizer.Views
             if (selecting) //Update selection rectangle position
             {
                 if (p.X > selFirstPos.X)
-                    selRect.Width = p.X - selFirstPos.X;
+                    viewModel.SelectionRectangle.Width = (p.X - selFirstPos.X) / graph.ActualWidth;
                 else
                 {
-                    Canvas.SetLeft(selRect, p.X);
-                    selRect.Width = selFirstPos.X - p.X;
+                    viewModel.SelectionRectangle.Left = p.X / graph.ActualWidth;
+                    viewModel.SelectionRectangle.Width = (selFirstPos.X - p.X) / graph.ActualWidth;
                 }
 
                 if (p.Y > selFirstPos.Y)
-                    selRect.Height = p.Y - selFirstPos.Y;
+                    viewModel.SelectionRectangle.Height = (p.Y - selFirstPos.Y) / graph.ActualHeight;
                 else
                 {
-                    Canvas.SetTop(selRect, p.Y);
-                    selRect.Height = selFirstPos.Y - p.Y;
+                    viewModel.SelectionRectangle.Top = p.Y / graph.ActualHeight;
+                    viewModel.SelectionRectangle.Height = (selFirstPos.Y - p.Y) / graph.ActualHeight;
                 }
             }
 
@@ -132,24 +126,18 @@ namespace GraphDigitizer.Views
 
         private void GraphMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
+            var graph = (FrameworkElement)sender;
             var p = e.GetPosition(DataCanvas);
             if (viewModel.State == State.Select)
             {
                 if (e.ChangedButton != MouseButton.Left) return;
                 selecting = true;
                 selFirstPos = p;
-                selRect = new Rectangle
+                viewModel.SelectionRectangle = new ViewModels.Graphics.Rectangle
                 {
-                    Stroke = new SolidColorBrush(new Color { ScA = 0.7f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), 
-                    Fill = new SolidColorBrush(new Color { ScA = 0.2f, ScR = 0.0f, ScG = 1.0f, ScB = 0.0f }), 
-                    StrokeThickness = 1.0
+                    Left = selFirstPos.X / graph.ActualWidth,
+                    Top = selFirstPos.Y / graph.ActualHeight,
                 };
-
-                // TODO
-                //this.cnvGraph.Children.Add(this.selRect);
-
-                //Canvas.SetLeft(this.selRect, this.selFirstPos.X);
-                //Canvas.SetTop(this.selRect, this.selFirstPos.Y);
             }
             else
                 viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(DataCanvas.ActualWidth, DataCanvas.ActualHeight));
@@ -175,31 +163,30 @@ namespace GraphDigitizer.Views
                 return;
             }
 
-            if (double.IsNaN(selRect.Width) || selRect.Width < 1.0 || double.IsNaN(selRect.Height) || selRect.Height < 1.0)
+            var selRect = viewModel.SelectionRectangle;
+            var left = selRect.Left;
+            var top = selRect.Top;
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
             {
-                //Nothing at the moment
-            }
-            else
-            {
-                double left = Canvas.GetLeft(selRect), top = Canvas.GetTop(selRect);
-                //if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
-                //    viewModel.SelectedData.Clear();
-                // TODO
-                //for (int i = 1; i < this.cnvGraph.Children.Count; i++) //Index = 1 is always the imgGraph element
-                //{
-                //    if (this.cnvGraph.Children[i] is Label)
-                //    {
-                //        tb = (Label)this.cnvGraph.Children[i];
-                //        x = Canvas.GetLeft(tb) + 8;
-                //        y = Canvas.GetTop(tb) + 8;
-                //        if (x >= left && x <= left + this.selRect.Width && y >= top && y <= top + this.selRect.Height) //Point is within the rectangle
-                //            this.dgrPoints.SelectedItems.Add((DataPoint)tb.Tag);
-                //    }
-                //}
+                viewModel.SelectedData.Clear();
             }
 
-            // TODO
-            //this.cnvGraph.Children.Remove(this.selRect);
+            foreach (var point in viewModel.Data)
+            {
+                if (viewModel.SelectedData.Contains(point))
+                {
+                    continue;
+                }
+
+                var x = point.Relative.X;
+                var y = point.Relative.Y;
+                if (x >= left && x <= left + selRect.Width && y >= top && y <= top + selRect.Height)
+                {
+                    viewModel.SelectedData.Add(point);
+                }
+            }
+
+            viewModel.SelectionRectangle = null;
             selecting = false;
         }
 

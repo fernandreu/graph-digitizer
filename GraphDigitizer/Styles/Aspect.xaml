@@ -121,6 +121,10 @@
         </Style.Triggers>
     </Style>
 
+    <Style x:Key="SelectionRectangleStyle" TargetType="{x:Type Rectangle}">
+
+    </Style>
+
     <!-- SCROLLBAR -->
     <Style x:Key="LineButton" TargetType="{x:Type RepeatButton}">
         <Setter Property="OverridesDefaultStyle" Value="True" />

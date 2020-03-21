@@ -14,6 +14,8 @@ namespace GraphDigitizer.Markup
 
         public DataTemplate AxisTemplate { get; set; }
 
+        public DataTemplate SelectionRectangleTemplate { get; set; }
+
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
             if (item is DataPoint)
@@ -29,6 +31,11 @@ namespace GraphDigitizer.Markup
             if (item is Axis)
             {
                 return AxisTemplate;
+            }
+
+            if (item is Rectangle)
+            {
+                return SelectionRectangleTemplate;
             }
 
             return null;

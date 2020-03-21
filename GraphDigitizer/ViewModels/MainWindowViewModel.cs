@@ -108,6 +108,31 @@ namespace GraphDigitizer.ViewModels
             }
         }
 
+        private Rectangle selectionRectangle;
+
+        public Rectangle SelectionRectangle
+        {
+            get => selectionRectangle;
+            set
+            {
+                var previous = selectionRectangle;
+                if (!Set(ref selectionRectangle, value))
+                {
+                    return;
+                }
+
+                if (previous != null)
+                {
+                    CanvasElements.Remove(previous);
+                }
+
+                if (value != null)
+                {
+                    CanvasElements.Add(value);
+                }
+            }
+        }
+
         public ObservableCollection<DataPoint> Data { get; } = new ObservableCollection<DataPoint>();
 
         public ObservableCollection<DataPoint> SelectedData { get; } = new ObservableCollection<DataPoint>();
