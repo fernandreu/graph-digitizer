@@ -7,12 +7,10 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
-using GraphDigitizer.Converters;
 using GraphDigitizer.Events;
 using GraphDigitizer.Interfaces;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels.Graphics;
-using GraphDigitizer.Views;
 
 namespace GraphDigitizer.ViewModels
 {
@@ -34,6 +32,7 @@ namespace GraphDigitizer.ViewModels
             this.KeyUpCommand = new RelayCommand<KeyEventArgs>(this.ExecuteKeyUpCommand);
 
             this.Data.CollectionChanged += this.OnDataChanged;
+            this.SelectedData.CollectionChanged += this.OnSelectedDataChanged;
             this.Axes = new Axes();
         }
 
@@ -79,6 +78,8 @@ namespace GraphDigitizer.ViewModels
         }
 
         public ObservableCollection<DataPoint> Data { get; } = new ObservableCollection<DataPoint>();
+
+        public ObservableCollection<DataPoint> SelectedData { get; } = new ObservableCollection<DataPoint>();
 
         public ObservableCollection<ICanvasElement> CanvasElements { get; } = new ObservableCollection<ICanvasElement>();
 
@@ -396,9 +397,19 @@ namespace GraphDigitizer.ViewModels
 
         private void OnDataChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var item in this.CanvasElements.OfType<DataPoint>().ToList())
+                {
+                    this.CanvasElements.Remove(item);
+                }
+
+                return;
+            }
+
             if (e.OldItems != null)
             {
-                foreach (var item in e.OldItems.OfType<ICanvasElement>())
+                foreach (var item in e.OldItems.OfType<DataPoint>())
                 {
                     this.CanvasElements.Remove(item);
                 }
@@ -407,9 +418,38 @@ namespace GraphDigitizer.ViewModels
             // TODO: This will add them at the top, but we want to preserve the same order as in Data
             if (e.NewItems != null)
             {
-                foreach (var item in e.NewItems.OfType<ICanvasElement>())
+                foreach (var item in e.NewItems.OfType<DataPoint>())
                 {
                     this.CanvasElements.Add(item);
+                }
+            }
+        }
+
+        private void OnSelectedDataChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var item in this.Data)
+                {
+                    item.IsSelected = false;
+                }
+
+                return;
+            }
+
+            if (e.OldItems != null)
+            {
+                foreach (var item in e.OldItems.OfType<DataPoint>())
+                {
+                    item.IsSelected = false;
+                }
+            }
+
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems.OfType<DataPoint>())
+                {
+                    item.IsSelected = true;
                 }
             }
         }
@@ -420,6 +460,62 @@ namespace GraphDigitizer.ViewModels
             var ap = this.dialogService.ShowDialog<AxesPropViewModel, Axes>(Axes);
             Axes = ap.Axes;
             this.State = State.Points;
+        }
+
+        public void HandlePointMouseDown(DataPoint point, MouseButton button)
+        {
+            if (State != State.Select)
+            {
+                return;
+            }
+
+            if (button == MouseButton.Left) //Select mode
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    // Add to current selection. If it was already selected, unselect
+                    if (SelectedData.Contains(point))
+                        SelectedData.Remove(point);
+                    else
+                        SelectedData.Add(point);
+                }
+                else if (SelectedData.Count == 1 && SelectedData.Contains(point))
+                    SelectedData.Clear();
+                else
+                {
+                    SelectedData.Clear();
+                    SelectedData.Add(point);
+                }
+            }
+            else if (button == MouseButton.Right) //Delete mode
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                    DeleteSelection();
+                else
+                {
+                    Data.Remove(point);
+                    UpdateIndices();
+                }
+            }
+        }
+
+        public void DeleteSelection()
+        {
+            foreach (var point in SelectedData.ToList())
+            {
+                SelectedData.Remove(point);
+                Data.Remove(point);
+            }
+
+            UpdateIndices();
+        }
+
+        private void UpdateIndices()
+        {
+            for (var i = 0; i < Data.Count; i++)
+            {
+                Data[i].Index = i + 1;
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <LinearGradientBrush x:Key="btnBackground" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Offset="0" Color="#FFE8F4F8"/>
         <GradientStop Offset="1" Color="#FFA1B6B9"/>
@@ -87,48 +88,37 @@
         <Setter Property="Height" Value="16"/>
         <Setter Property="Margin" Value="-8,-8,8,8"></Setter>
         <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Grid>
+                        <Border
+                            Background="{Binding Path=Background, RelativeSource={RelativeSource TemplatedParent}}"
+                            BorderBrush="{Binding Path=BorderBrush, RelativeSource={RelativeSource TemplatedParent}}"
+                            BorderThickness="1"
+                            CornerRadius="7"/>
+                        <Border>
+                            <TextBlock
+                                x:Name="PointContent"
+                                Text="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="0,-1,0,0"/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Background" Value="#FFFC8A45"/>
+        <Setter Property="BorderBrush" Value="#FF3E150A"/>
         <Setter Property="Foreground" Value="Black"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate>
-                    <Grid>
-                        <Border Background="#FFFC8A45" BorderBrush="#FF3E150A" BorderThickness="1" CornerRadius="7"/>
-                        <Border CornerRadius="7" Opacity="0.5">
-                            <Border.Background>
-                                <RadialGradientBrush GradientOrigin="0.75,0.25">
-                                    <GradientStop Offset="0.5" Color="Transparent"/>
-                                    <GradientStop Offset="1" Color="Yellow"/>
-                                </RadialGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Border>
-                            <TextBlock x:Name="PointContent" Text="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style x:Key="PointStyleSel" TargetType="{x:Type Label}">
-        <Setter Property="OverridesDefaultStyle" Value="True"/>
-        <Setter Property="SnapsToDevicePixels" Value="True"/>
-        <Setter Property="Width" Value="16"/>
-        <Setter Property="Height" Value="16"/>
-        <Setter Property="FontSize" Value="11"/>
-        <Setter Property="Foreground" Value="#FFCAD6DF"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate>
-                    <Grid>
-                        <Border Background="#FF233849" BorderBrush="#FFCAD6DF" BorderThickness="0.8" CornerRadius="7"/>
-                        <Border>
-                            <TextBlock x:Name="PointContent" Text="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="Background" Value="#FF233849"/>
+                <Setter Property="BorderBrush" Value="#FFCAD6DF"/>
+                <Setter Property="Foreground" Value="#FFCAD6DF"/>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- SCROLLBAR -->

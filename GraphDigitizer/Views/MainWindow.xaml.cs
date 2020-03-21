@@ -121,7 +121,7 @@ namespace GraphDigitizer.Views
             {
                 switch (Axes.Status)
                 {
-                    case 0: //Xmin
+                    case 0:
                         Axes.X.Minimum = relative;
                         break;
                     case 1:
@@ -145,54 +145,19 @@ namespace GraphDigitizer.Views
             SetToolTip();
         }
 
-        private void UpdateData()
-        {
-            for (var i = 0; i < this.viewModel.Data.Count; i++)
-            {
-                this.viewModel.Data[i].Index = (i + 1) % 100;
-            }
-        }
-
         private void PointMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (viewModel.State != State.Select) return;
-            if (e.ChangedButton == MouseButton.Left) //Select mode
+            if (!((sender as FrameworkElement)?.DataContext is DataPoint point))
             {
-                if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) //Add to current selection. If it was already selected, unselect
-                {
-                    if (dgrPoints.SelectedItems.Contains(((Label)sender).Tag))
-                        dgrPoints.SelectedItems.Remove(((Label)sender).Tag);
-                    else
-                        dgrPoints.SelectedItems.Add(((Label)sender).Tag);
-                }
-                else if (dgrPoints.SelectedItems.Count == 1 && dgrPoints.SelectedItems.Contains(((Label)sender).Tag))
-                    dgrPoints.SelectedItems.Clear();
-                else
-                {
-                    dgrPoints.SelectedItems.Clear();
-                    dgrPoints.SelectedItem = ((Label)sender).Tag;
-                }
+                return;
             }
-            else if (e.ChangedButton == MouseButton.Right) //Delete mode
-            {
-                if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
-                    DeleteSelection(sender, e);
-                else
-                {
-                    this.viewModel.Data.Remove((DataPoint)((Label)sender).Tag);
-                    UpdateData();
-                }
-            }
+
+            viewModel.HandlePointMouseDown(point, e.ChangedButton);
         }
 
         private void DeleteSelection(object sender, EventArgs e)
         {
-            foreach (DataPoint dp in dgrPoints.SelectedItems)
-            {
-                this.viewModel.Data.Remove(dp);
-            }
-
-            UpdateData();
+            viewModel.DeleteSelection();
         }
 
         private void imgGraph_MouseDown(object sender, MouseButtonEventArgs e)
@@ -290,8 +255,8 @@ namespace GraphDigitizer.Views
             else
             {
                 double left = Canvas.GetLeft(selRect), top = Canvas.GetTop(selRect);
-                if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
-                    dgrPoints.SelectedItems.Clear();
+                //if (!Keyboard.IsKeyDown(Key.LeftShift) && !Keyboard.IsKeyDown(Key.RightShift))
+                //    viewModel.SelectedData.Clear();
                 // TODO
                 //for (int i = 1; i < this.cnvGraph.Children.Count; i++) //Index = 1 is always the imgGraph element
                 //{

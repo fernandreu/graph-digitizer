@@ -8,6 +8,7 @@
         xmlns:markup="clr-namespace:GraphDigitizer.Markup"
         xmlns:graphics="clr-namespace:GraphDigitizer.ViewModels.Graphics"
         xmlns:command="http://www.galasoft.ch/mvvmlight"
+        xmlns:controls="clr-namespace:GraphDigitizer.Controls"
         mc:Ignorable="d" x:Class="GraphDigitizer.Views.MainWindow"
         Title="Graph Digitizer"
         Height="733" 
@@ -226,11 +227,11 @@
                 </Button>
             </StackPanel>
         </Border>
-        <DataGrid 
-            x:Name="dgrPoints" 
+        <DataGrid
             Grid.Row="1" 
             Grid.Column="0"
             ItemsSource="{Binding Data}"
+            controls:ItemsSelection.SelectedItems="{Binding SelectedData}"
             Block.TextAlignment="Center" 
             HorizontalScrollBarVisibility="Disabled" 
             VerticalScrollBarVisibility="Visible" 

@@ -32,6 +32,14 @@ namespace GraphDigitizer.ViewModels.Graphics
             set => this.Set(ref this.index, value);
         }
 
+        private bool isSelected;
+
+        public bool IsSelected
+        {
+            get => this.isSelected;
+            set => this.Set(ref this.isSelected, value);
+        }
+
         public DataPoint(TransformedPoint transformed, RelativePoint relative, int pos)
         {
             this.Transformed = transformed;
