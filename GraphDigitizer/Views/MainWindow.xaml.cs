@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Shapes;
 using GraphDigitizer.Models;
 using GraphDigitizer.ViewModels;
 using GraphDigitizer.ViewModels.Graphics;
@@ -18,10 +16,6 @@ namespace GraphDigitizer.Views
 
         private Point previousPosition;
 
-        //Selection rectangle
-        private bool selecting = false; //Selection rectangle off
-        private Point selFirstPos; //First rectangle corner
-
         public MainWindow()
         {
             InitializeComponent();
@@ -36,42 +30,16 @@ namespace GraphDigitizer.Views
             }
         }
 
-        private void imgGraph_MouseMove(object sender, MouseEventArgs e)
+        private static RelativePoint GetPosition(object sender, MouseEventArgs e)
         {
-            var graph = (FrameworkElement)sender;
+            var graph = (FrameworkElement) sender;
             var p = e.GetPosition(graph);
-            if (selecting) //Update selection rectangle position
-            {
-                if (p.X > selFirstPos.X)
-                    viewModel.SelectionRectangle.Width = (p.X - selFirstPos.X) / graph.ActualWidth;
-                else
-                {
-                    viewModel.SelectionRectangle.Left = p.X / graph.ActualWidth;
-                    viewModel.SelectionRectangle.Width = (selFirstPos.X - p.X) / graph.ActualWidth;
-                }
+            return new RelativePoint(p.X / graph.ActualWidth, p.Y / graph.ActualHeight);
+        }
 
-                if (p.Y > selFirstPos.Y)
-                    viewModel.SelectionRectangle.Height = (p.Y - selFirstPos.Y) / graph.ActualHeight;
-                else
-                {
-                    viewModel.SelectionRectangle.Top = p.Y / graph.ActualHeight;
-                    viewModel.SelectionRectangle.Height = (selFirstPos.Y - p.Y) / graph.ActualHeight;
-                }
-            }
-
-            viewModel.MousePosition = new RelativePoint(p.X / graph.ActualWidth, p.Y / graph.ActualHeight);
-
-            if (viewModel.State == State.Axes)
-            {
-                if (viewModel.Axes.Status == 1)
-                {
-                    viewModel.Axes.X.Maximum = viewModel.MousePosition;
-                }
-                else if (viewModel.Axes.Status == 3)
-                {
-                    viewModel.Axes.Y.Maximum = viewModel.MousePosition;
-                }
-            }
+        private void GraphMouseMoveEventHandler(object sender, MouseEventArgs e)
+        {
+            viewModel.HandleMouseMove(GetPosition(sender, e));
         }
 
         private void ZoomMouseMoveEventHandler(object sender, MouseEventArgs e)
@@ -126,21 +94,8 @@ namespace GraphDigitizer.Views
 
         private void GraphMouseDownEventHandler(object sender, MouseButtonEventArgs e)
         {
-            var graph = (FrameworkElement)sender;
-            var p = e.GetPosition(DataCanvas);
-            if (viewModel.State == State.Select)
-            {
-                if (e.ChangedButton != MouseButton.Left) return;
-                selecting = true;
-                selFirstPos = p;
-                viewModel.SelectionRectangle = new ViewModels.Graphics.Rectangle
-                {
-                    Left = selFirstPos.X / graph.ActualWidth,
-                    Top = selFirstPos.Y / graph.ActualHeight,
-                };
-            }
-            else
-                viewModel.SelectPoint(new AbsolutePoint(p.X, p.Y).ToRelative(DataCanvas.ActualWidth, DataCanvas.ActualHeight));
+            var p = GetPosition(sender, e);
+            viewModel.HandleMouseDown(p, e.ChangedButton);
         }
 
         private void ZoomMouseDownEventHandler(object sender, MouseButtonEventArgs e)
@@ -158,36 +113,7 @@ namespace GraphDigitizer.Views
 
         private void OnWindowPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (!selecting)
-            {
-                return;
-            }
-
-            var selRect = viewModel.SelectionRectangle;
-            var left = selRect.Left;
-            var top = selRect.Top;
-            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-            {
-                viewModel.SelectedData.Clear();
-            }
-
-            foreach (var point in viewModel.Data)
-            {
-                if (viewModel.SelectedData.Contains(point))
-                {
-                    continue;
-                }
-
-                var x = point.Relative.X;
-                var y = point.Relative.Y;
-                if (x >= left && x <= left + selRect.Width && y >= top && y <= top + selRect.Height)
-                {
-                    viewModel.SelectedData.Add(point);
-                }
-            }
-
-            viewModel.SelectionRectangle = null;
-            selecting = false;
+            viewModel.HandleMouseUp();
         }
 
         private void MouseEnterEventHandler(object sender, MouseEventArgs e)

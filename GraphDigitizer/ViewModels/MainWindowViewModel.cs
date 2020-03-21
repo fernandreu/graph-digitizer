@@ -716,6 +716,99 @@ namespace GraphDigitizer.ViewModels
             SetToolTip();
         }
 
+        public void HandleMouseDown(RelativePoint position, MouseButton button)
+        {
+            if (State == State.Select)
+            {
+                if (button != MouseButton.Left)
+                {
+                    return;
+                }
+
+                SelectionRectangle = new ViewModels.Graphics.Rectangle
+                {
+                    Left = position.X,
+                    Top = position.Y,
+                };
+            }
+            else
+                SelectPoint(position);
+        }
+
+        public void HandleMouseMove(RelativePoint position)
+        {
+            if (SelectionRectangle != null)
+            {
+                // Update selection rectangle position
+
+                if (position.X > SelectionRectangle.Left)
+                {
+                    SelectionRectangle.Width = position.X - SelectionRectangle.Left;
+                }
+                else
+                {
+                    SelectionRectangle.Width = SelectionRectangle.Left - position.X;
+                    SelectionRectangle.Left = position.X;
+                }
+
+                if (position.Y > SelectionRectangle.Top)
+                {
+                    SelectionRectangle.Height = position.Y - SelectionRectangle.Top;
+                }
+                else
+                {
+                    SelectionRectangle.Height = SelectionRectangle.Top - position.Y;
+                    SelectionRectangle.Top = position.Y;
+                }
+            }
+
+            MousePosition = position;
+
+            if (State == State.Axes)
+            {
+                if (Axes.Status == 1)
+                {
+                    Axes.X.Maximum = MousePosition;
+                }
+                else if (Axes.Status == 3)
+                {
+                    Axes.Y.Maximum = MousePosition;
+                }
+            }
+        }
+
+        public void HandleMouseUp()
+        {
+            if (SelectionRectangle == null)
+            {
+                return;
+            }
+
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                SelectedData.Clear();
+            }
+
+            var left = SelectionRectangle.Left;
+            var top = SelectionRectangle.Top;
+            foreach (var point in Data)
+            {
+                if (SelectedData.Contains(point))
+                {
+                    continue;
+                }
+
+                var x = point.Relative.X;
+                var y = point.Relative.Y;
+                if (x >= left && x <= left + SelectionRectangle.Width && y >= top && y <= top + SelectionRectangle.Height)
+                {
+                    SelectedData.Add(point);
+                }
+            }
+
+            SelectionRectangle = null;
+        }
+
         private void ExecuteAxesCommand()
         {
             State = State.Axes;

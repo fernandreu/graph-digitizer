@@ -318,7 +318,7 @@
             Focusable="False">
             <ItemsControl 
                 x:Name="DataCanvas"
-                MouseMove="imgGraph_MouseMove"
+                MouseMove="GraphMouseMoveEventHandler"
                 MouseDown="GraphMouseDownEventHandler" 
                 MouseEnter="MouseEnterEventHandler"
                 MouseLeave="MouseLeaveEventHandler"
